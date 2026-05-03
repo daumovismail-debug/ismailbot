@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: vant2-api
+    runtime: go
+    rootDir: services/api
+    buildCommand: go build -o app ./cmd/server
+    startCommand: ./app
+    envVars:
+      - key: PORT
+        value: 8080
+
+  - type: static
+    name: vant2-web
+    rootDir: apps/web
+    staticPublishPath: .
