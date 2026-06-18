@@ -6,7 +6,11 @@ async function init() {
     const st = await (await fetch("/api/status")).json();
     const badge = $("#mode");
     if (st.mode === "real") {
-      badge.textContent = "● реальный режим (API подключены)";
+      const on = [];
+      if (st.openai) on.push("ChatGPT");
+      if (st.xai) on.push("Grok");
+      if (st.elevenlabs) on.push("ElevenLabs");
+      badge.textContent = "● реальный режим: " + on.join(" + ");
       badge.className = "badge real";
     } else {
       badge.textContent = "● демо-режим (вставь API-ключи в .env)";

@@ -1,31 +1,21 @@
-"""МОДУЛЬ 3 — РАСКАДРОВКА. На каждую сцену — промпт картинки и промпт движения."""
-from .. import idea_bank
+"""МОДУЛЬ 3 — РАСКАДРОВКА. Два агента-профи пишут промпты на каждую сцену.
 
-IMG_TPL = (
-    "{hero} Scene: {beat}. Cinematic Pixar lighting, warm cozy interior, "
-    "highly detailed, vertical 9:16."
-)
-
-MOTION_BY_ROLE = {
-    "ХУК": "slow cinematic push-in on her face, chandelier-crown flickering softly",
-    "ПРОБЛЕМА": "gentle camera pan across the warm room, light shining on others",
-    "ДНО": "slow zoom out in a dim room, crystals dimming to near darkness",
-    "ПЕРЕЛОМ": "warm golden light slowly growing brighter, she lifts her chin",
-    "ФИНАЛ+CTA": "triumphant warm light fills the whole room, she smiles at camera",
-}
+🎨 Агент-Художник  -> промпт картинки (для ChatGPT)
+🎬 Агент-Аниматор -> промпт движения (для Grok Imagine)
+"""
+from .. import agents
+from ..integrations import openai_api
 
 
 def run(job, ctx: dict) -> str:
-    hero = idea_bank.HERO_PASSPORT
     storyboard = []
     for scene in ctx["scenes"]:
         storyboard.append({
             "role": scene["role"],
             "voice": scene["voice"],
-            "image_prompt": IMG_TPL.format(hero=hero, beat=scene.get("beat", "")),
-            "motion_prompt": MOTION_BY_ROLE.get(
-                scene["role"], "smooth cinematic camera motion"
-            ),
+            "image_prompt": agents.image_prompt(scene),
+            "motion_prompt": agents.motion_prompt(scene),
         })
     ctx["storyboard"] = storyboard
-    return f"Раскадровка на {len(storyboard)} сцен: промпты картинка+движение готовы"
+    mode = "агенты на ChatGPT" if openai_api.HAS_LLM else "агенты на шаблонах (демо)"
+    return f"Раскадровка на {len(storyboard)} сцен готова ({mode})"

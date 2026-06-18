@@ -1,9 +1,8 @@
 """Оркестратор: гоняет 8 модулей строго по очереди, обновляя статусы задачи."""
-import tempfile
 import time
 import traceback
-from pathlib import Path
 
+from . import config
 from .jobs import Job
 from .modules import (
     m1_idea,
@@ -32,8 +31,12 @@ MODULES = [
 def run_pipeline(job: Job) -> None:
     """Запускается в фоновом потоке. Прогоняет задачу по конвейеру."""
     job.status = "running"
-    workdir = Path(tempfile.mkdtemp(prefix=f"svet_{job.id}_"))
+    # рабочая папка внутри output/, чтобы кадры были доступны по публичному URL
+    workdir = config.OUTPUT_DIR / job.id
+    workdir.mkdir(parents=True, exist_ok=True)
     job.context["workdir"] = workdir
+    if config.PUBLIC_BASE_URL:
+        job.context["media_base"] = f"{config.PUBLIC_BASE_URL}/media/{job.id}"
 
     for i, module in enumerate(MODULES):
         state = job.modules[i]

@@ -1,12 +1,14 @@
 """МОДУЛЬ 2 — СЦЕНАРИЙ. 5 сцен по формуле Хук→Проблема→Дно→Перелом→Финал."""
 import json
 
-from ..integrations import gemini
+from ..integrations import openai_api
 
 SCENE_ROLES = ["ХУК", "ПРОБЛЕМА", "ДНО", "ПЕРЕЛОМ", "ФИНАЛ+CTA"]
 
-PROMPT = """Ты — сценарист коротких вертикальных видео для женщин 30+ в нише
-освещения/люстр. Герой — Pixar-девушка с хрустальной люстрой-короной, её свет
+SCRIPT_SYSTEM = ("Ты — сценарист коротких вертикальных видео для женщин 30+ в нише "
+                 "освещения/люстр. Пиши живо, цепляюще, с драмой.")
+
+PROMPT = """Герой — Pixar-девушка с хрустальной люстрой-короной, её свет
 отражает её эмоции (грустит — тускнеет, счастлива — сияет).
 
 Тема: «{theme}»
@@ -55,12 +57,15 @@ def _parse(text: str) -> list[dict] | None:
 
 def run(job, ctx: dict) -> str:
     idea = ctx["idea"]
-    raw = gemini.generate_text(PROMPT.format(theme=idea["theme"], message=idea["message"]))
+    raw = openai_api.chat(
+        SCRIPT_SYSTEM,
+        PROMPT.format(theme=idea["theme"], message=idea["message"]),
+    )
     scenes = _parse(raw) if raw else None
     if not scenes:
         scenes = _fallback(idea)
         source = "демо-шаблон"
     else:
-        source = "Gemini"
+        source = "ChatGPT"
     ctx["scenes"] = scenes
     return f"5 сцен готовы ({source}): " + " / ".join(s["role"] for s in scenes)

@@ -21,9 +21,10 @@ class CreateJob(BaseModel):
 def status():
     """Какие интеграции подключены (режим демо или реальный)."""
     return {
-        "gemini": config.HAS_GEMINI,
+        "openai": config.HAS_OPENAI,      # ChatGPT — картинки + сценарий
+        "xai": config.HAS_XAI,            # Grok — анимация
         "elevenlabs": config.HAS_ELEVENLABS,
-        "mode": "real" if config.HAS_GEMINI else "demo",
+        "mode": "real" if (config.HAS_OPENAI or config.HAS_XAI) else "demo",
     }
 
 
@@ -59,6 +60,9 @@ def get_video(job_id: str):
         raise HTTPException(404, "video not ready")
     return FileResponse(job.video_path, media_type="video/mp4", filename=f"svet_{job_id}.mp4")
 
+
+# отдаём сгенерированные кадры по публичному URL (нужно Grok'у для image-to-video)
+app.mount("/media", StaticFiles(directory=str(config.OUTPUT_DIR)), name="media")
 
 # веб-панель (статика) — монтируем последней, чтобы не перекрывать /api
 app.mount("/", StaticFiles(directory=str(config.WEB_DIR), html=True), name="web")
