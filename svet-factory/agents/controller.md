@@ -32,12 +32,36 @@
 3. При FAIL — кадр/реплика уходит назад нужному агенту (макс. **N=3** попытки).
 4. Если после 3 попыток не вышло — **эскалация пользователю** (не зацикливаться).
 
+## 👁️ Как именно «видит» (vision-сверка с эталоном)
+Контролёр **смотрит** на эталон персонажа и на новый кадр (через vision-модель —
+gpt-5.5/Grok vision) и отвечает на конкретные вопросы:
+- то же лицо/черты? · цвет глаз совпал? · причёска-люстра/корона та же? ·
+  наряд тот же? · стиль и палитра те же?
+Возвращает **процент схожести лица `face_match` 0–100**.
+- **face_match ≥ 85 → PASS**, иначе **FAIL** (лицо «уплыло»).
+
+Промпт сверки (пример):
+```
+Compare REFERENCE image and NEW frame. Same character? Answer JSON:
+{"same_person":bool,"eyes_match":bool,"crown_match":bool,"outfit_match":bool,
+ "style_match":bool,"face_match":0-100,"notes":"..."}
+```
+
+## 📐 Авто-метрики (числами, не на глаз)
+- **face_match** (vision, 0–100) — порог ≥85.
+- **sharpness** — чёткость (Laplacian variance, OpenCV); ниже порога = размыто → FAIL.
+- **artifacts** — лишние пальцы/искажения/кривой текст (vision: yes/no).
+- **aspect_ratio** — строго 9:16, иначе FAIL.
+- **av_sync_ms** — рассинхрон звук↔губы (мс); |>120мс| = FAIL.
+- **subtitle_present** — субтитры на месте (да/нет).
+- **music_continuous** — музыка не обрывается на склейке (да/нет).
+
 ## Формат ответа (строго JSON)
 ```json
 [
-  {"stage":"Художник","shot":5,"status":"FAIL","issues":["глаза синие, в эталоне карие","потерян свет=эмоция"],"action":"redo","assignee":"Художник"},
-  {"stage":"Аниматор","shot":8,"status":"FAIL","issues":["лицо плывёт на резком зуме"],"action":"redo","assignee":"Аниматор","hint":"меньше движения"},
-  {"stage":"Художник","shot":3,"status":"PASS","issues":[]}
+  {"stage":"Художник","shot":5,"status":"FAIL","face_match":61,"sharpness":"ok","artifacts":false,"issues":["глаза синие, в эталоне карие"],"action":"redo","assignee":"Художник"},
+  {"stage":"Аниматор","shot":8,"status":"FAIL","face_match":48,"av_sync_ms":40,"issues":["лицо плывёт на резком зуме"],"action":"redo","assignee":"Аниматор","hint":"меньше движения"},
+  {"stage":"Художник","shot":3,"status":"PASS","face_match":93,"sharpness":"ok","artifacts":false,"issues":[]}
 ]
 ```
 
