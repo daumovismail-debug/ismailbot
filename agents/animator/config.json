@@ -1,0 +1,17 @@
+{
+  "id": "animator",
+  "name": "Агент-Аниматор",
+  "role": "Профессиональный motion-режиссёр и prompt-инженер по видео",
+  "model": "REPLACE_WITH_YOUR_LLM_MODEL",
+  "system_prompt_file": "agent.md",
+  "input": {
+    "from": "hudozhnik",
+    "type": "scene_and_image",
+    "description": "Описание кадра + промпт/картинка от Художника"
+  },
+  "output": {
+    "type": "video_prompt",
+    "fields": ["video_prompt", "camera_motion", "scene_motion", "duration", "generator"]
+  },
+  "next": null
+}

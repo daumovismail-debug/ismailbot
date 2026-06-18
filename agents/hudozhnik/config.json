@@ -1,0 +1,17 @@
+{
+  "id": "hudozhnik",
+  "name": "Агент-Художник",
+  "role": "Профессиональный концепт-художник и prompt-инженер для генерации изображений",
+  "model": "REPLACE_WITH_YOUR_LLM_MODEL",
+  "system_prompt_file": "agent.md",
+  "input": {
+    "from": "scenarist",
+    "type": "scene_description",
+    "description": "Описание одного кадра/сцены"
+  },
+  "output": {
+    "type": "image_prompt",
+    "fields": ["prompt", "negative_prompt", "aspect_ratio", "style", "generator"]
+  },
+  "next": "animator"
+}

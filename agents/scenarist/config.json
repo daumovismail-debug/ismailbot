@@ -1,0 +1,17 @@
+{
+  "id": "scenarist",
+  "name": "Агент-Сценарист",
+  "role": "Профессиональный сценарист и режиссёр раскадровки",
+  "model": "REPLACE_WITH_YOUR_LLM_MODEL",
+  "system_prompt_file": "agent.md",
+  "input": {
+    "from": "user",
+    "type": "idea",
+    "description": "Идея или тема ролика"
+  },
+  "output": {
+    "type": "storyboard",
+    "fields": ["title", "logline", "global_style", "format", "duration", "shots"]
+  },
+  "next": "hudozhnik"
+}
