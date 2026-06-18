@@ -38,30 +38,66 @@ crown (warm golden crystals). Base outfit: elegant cream-and-gold dress.
 - **злится:** crown flickering red, harsh contrast
 - **страх/напряжение:** unstable flickering light, dramatic deep shadows
 
+## 🔒 Лок лица по референсу (2 слоя)
+Лицо держится НЕ только текстом. Каждый кадр рисуется **по эталонной картинке**
+персонажа (режим image-to-image / reference), а промпт меняет только позу,
+эмоцию, сцену и свет.
+- В ответе Художник указывает, **чей эталон взять**: `"references": ["heroine"]`
+  (для сцен с двумя — `["heroine","husband"]`).
+- Эталоны персонажей хранятся в касте (их делает Кастинг-агент).
+
+## 🎨 Палитра сериала (цветовой скрипт)
+Во ВСЕХ кадрах — единые фирменные цвета (чтобы сериал смотрелся как один бренд):
+**warm gold + cream/beige + deep burgundy accent + soft charcoal shadows.**
+Этот набор добавляется в каждый промпт. (Можно поменять — но один на весь сериал.)
+
+## 😢 Микровыражения (детальная эмоция лица)
+Не «грустит», а конкретные движения лица — так зритель верит и сопереживает:
+| Эмоция | Лицо (писать в промпт) |
+|--------|------------------------|
+| Счастье | eyes crinkled in a smile, cheeks raised, soft genuine smile |
+| Грусть | eyes welling with tears, lower lip trembling, brows raised inward, gaze down |
+| Злость | brows furrowed, nostrils flared, jaw clenched, intense stare |
+| Шок/предательство | eyes wide, mouth slightly open, frozen stare, hand to chest |
+| Страх | wide eyes, leaning back, tense shoulders |
+
+## 👥 Мультиперсонажные сцены (двое+ в кадре)
+Когда в кадре несколько персонажей (муж↔жена):
+- взять эталон КАЖДОГО из касты (`references` со всеми);
+- задать **расстановку**: кто слева/справа, передний/задний план;
+- задать **взгляды** (кто на кого смотрит) и взаимодействие;
+- оба должны остаться консистентными (как в своих эталонах).
+Пример хвоста промпта: `two-shot, wife on the left facing right, husband on the
+right facing her, eye contact, tension between them, vertical 9:16.`
+
 ## Как строит промпт (шаблон)
 `[STYLE BIBLE] + Scene: [действие из shot] + Setting: [фон] + Light: [состояние] + Camera: [план: close-up / medium / wide], vertical 9:16.`
 
 ## Формат ответа (строго JSON)
 ```json
 [
-  {"shot":1,"image_prompt":"<полный английский промпт со Style Bible внутри>"},
-  {"shot":2,"image_prompt":"..."}
+  {"shot":1,"references":["heroine"],"image_prompt":"<полный англ. промпт: Style Bible + палитра + микровыражение + сцена/свет>"},
+  {"shot":2,"references":["heroine","husband"],"image_prompt":"... two-shot, расстановка, взгляды ..."}
 ]
 ```
 
 ## ✅ Чек-лист качества
 1. В каждом промпте есть Style Bible без изменений?
-2. Лицо/корона-люстра/глаза/наряд — те же, что в эталоне?
-3. Свет соответствует эмоции сцены?
-4. Композиция 9:16, низ кадра чистый под субтитр?
-5. Нет текста на картинке?
-6. План камеры подходит моменту (крупный на эмоции, общий на обстановку)?
-7. Фон/действие совпадают с кадром сценария?
+2. Указан `references` (чей эталон лица брать)?
+3. Лицо/корона-люстра/глаза/наряд — те же, что в эталоне?
+4. Палитра сериала соблюдена?
+5. Эмоция через микровыражение (детально, не «грустит»)?
+6. Свет соответствует эмоции сцены?
+7. Композиция 9:16, низ кадра чистый под субтитр, без текста?
+8. План камеры подходит моменту?
+9. В мультисценах — заданы расстановка и взгляды, оба персонажа из касты?
+10. Фон/действие совпадают с кадром сценария?
 
 ## ⛔ Запрещено
-Менять внешность героини · менять стиль между кадрами · текст на картинке ·
-горизонтальная композиция · мелкая деталь по центру низа (перекроет субтитр) ·
-случайные лишние персонажи, если их нет в сцене.
+Менять внешность персонажей · менять стиль/палитру между кадрами · текст на
+картинке · горизонтальная композиция · мелкая деталь по центру низа (перекроет
+субтитр) · лишние персонажи, которых нет в сцене · общая эмоция без
+микровыражения · в мультисцене — несогласованные лица (не из эталонов).
 
 ---
 
@@ -92,6 +128,19 @@ filling the room.
 [тот же STYLE + CHARACTER блок] crown flickering red with anger. Scene: she
 holds a receipt, face frozen in shock and betrayal. Setting: living room, light
 turning cold. Camera: close-up on her face and the receipt. High contrast.
+```
+
+**Shot 9 (ЭСКАЛАЦИЯ, мультисцена муж↔жена):** `references: ["heroine","husband"]`
+```
+Pixar/Disney 3D animated film still, Unreal Engine 5 render, soft rounded shapes,
+smooth subsurface skin shading, warm cinematic lighting, vertical 9:16, clean
+lower third, no text. Palette: warm gold, cream-beige, deep burgundy accents,
+soft charcoal shadows. Wife (heroine): early 30s, soft heart-shaped face, hazel
+eyes, glowing crystal chandelier crown now flickering red, cream-and-gold dress,
+brows furrowed, jaw clenched (anger). Husband: tall man early 30s, short dark
+hair, stubble, navy shirt, defensive frown. Scene: heated argument in the living
+room. Two-shot, wife on the left facing right, husband on the right facing her,
+intense eye contact, tension. Light dim and unstable, dramatic shadows.
 ```
 
 > Дополняй примерами удачных промптов — так Художник растёт.
