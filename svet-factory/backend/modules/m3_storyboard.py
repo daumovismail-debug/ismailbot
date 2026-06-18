@@ -17,5 +17,5 @@ def run(job, ctx: dict) -> str:
             "motion_prompt": agents.motion_prompt(scene),
         })
     ctx["storyboard"] = storyboard
-    mode = "агенты на ChatGPT" if openai_api.HAS_LLM else "агенты на шаблонах (демо)"
+    mode = "агенты на ChatGPT" if openai_api.HAS_LLM else "агенты на шаблонах"
     return f"Раскадровка на {len(storyboard)} сцен готова ({mode})"

@@ -58,7 +58,30 @@ class Job:
         }
         d["context"] = safe_ctx
         d["has_video"] = bool(self.video_path)
+        d["media"] = self._media()
+        # прогресс: сколько модулей завершено
+        done = sum(1 for m in self.modules if m.status == "done")
+        d["progress"] = round(done / len(self.modules) * 100) if self.modules else 0
         return d
+
+    def _media(self) -> dict:
+        """Ссылки на сгенерированные кадры/клипы (для превью в панели)."""
+        folder = config.OUTPUT_DIR / self.id
+        base = f"/media/{self.id}"
+        media: dict[str, Any] = {"hero": None, "scenes": [], "clips": []}
+        if folder.exists():
+            if (folder / "hero.png").exists():
+                media["hero"] = f"{base}/hero.png"
+            for i in range(12):
+                p = folder / f"scene_{i}.png"
+                if p.exists():
+                    media["scenes"].append(f"{base}/scene_{i}.png")
+            for i in range(12):
+                p = folder / f"clip_{i}.mp4"
+                if p.exists():
+                    media["clips"].append(f"{base}/clip_{i}.mp4")
+        media["video"] = f"/api/jobs/{self.id}/video" if self.video_path else None
+        return media
 
 
 class JobStore:

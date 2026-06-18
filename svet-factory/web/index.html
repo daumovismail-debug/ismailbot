@@ -22,12 +22,17 @@
     </section>
 
     <section id="board" class="board hidden">
-      <h2>Конвейер</h2>
-      <ol id="modules"></ol>
-      <div id="result" class="result hidden">
-        <video id="player" controls playsinline></video>
-        <a id="download" class="dl" download>⬇ Скачать ролик</a>
+      <!-- полоса модулей сверху -->
+      <div id="stepper" class="stepper"></div>
+
+      <!-- общий прогресс -->
+      <div class="progress-wrap">
+        <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+        <div id="progressText" class="progress-text"></div>
       </div>
+
+      <!-- содержимое выбранного модуля -->
+      <div id="inspector" class="inspector"></div>
     </section>
   </div>
   <script src="/app.js"></script>

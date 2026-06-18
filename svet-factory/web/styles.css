@@ -6,8 +6,8 @@ body {
   color: #f3ecff;
   min-height: 100vh;
 }
-.wrap { max-width: 640px; margin: 0 auto; padding: 32px 20px 80px; }
-header { text-align: center; margin-bottom: 28px; }
+.wrap { max-width: 760px; margin: 0 auto; padding: 32px 18px 80px; }
+header { text-align: center; margin-bottom: 24px; }
 h1 { font-size: 44px; margin: 0; letter-spacing: 2px; }
 .sub { color: #c9b8e0; margin: 6px 0 12px; }
 .badge {
@@ -33,23 +33,67 @@ button {
 }
 button:disabled { opacity: .5; cursor: default; }
 
-.board { margin-top: 28px; }
-.board h2 { font-size: 18px; color: #d8c9f0; }
-#modules { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
-.mod {
-  display: flex; align-items: center; gap: 14px;
-  background: #1a1426; border: 1px solid #2e2440; border-radius: 14px; padding: 14px 16px;
+/* --- stepper --- */
+.board { margin-top: 26px; }
+.stepper {
+  display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px;
+  scrollbar-width: thin;
 }
-.dot { width: 22px; height: 22px; border-radius: 50%; flex: 0 0 22px; background: #3a3050; }
-.mod.running .dot { background: #ffb35c; animation: pulse 1s infinite; }
-.mod.done .dot { background: #43c46b; }
-.mod.error .dot { background: #e0556b; }
-.mod .name { font-weight: 700; min-width: 110px; }
-.mod .detail { color: #b3a3cc; font-size: 13px; }
-@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+.step {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border-radius: 12px; cursor: pointer;
+  background: #1a1426; border: 1px solid #2e2440; transition: .15s;
+  white-space: nowrap;
+}
+.step:hover { border-color: #5a4780; }
+.step.active { border-color: #ffb35c; background: #2a2138; }
+.step .dot { width: 16px; height: 16px; border-radius: 50%; background: #3a3050; flex: 0 0 16px; }
+.step.running .dot { background: #ffb35c; animation: pulse 1s infinite; }
+.step.done .dot { background: #43c46b; }
+.step.error .dot { background: #e0556b; }
+.step .label { font-size: 13px; font-weight: 700; }
+.step .num { font-size: 11px; color: #8a7aa8; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
 
-.result { margin-top: 22px; text-align: center; }
-video { width: 100%; border-radius: 16px; background: #000; }
+/* --- progress --- */
+.progress-wrap { margin: 16px 0 20px; }
+.progress-bar { height: 10px; border-radius: 999px; background: #221a30; overflow: hidden; }
+.progress-fill {
+  height: 100%; width: 0; border-radius: 999px; transition: width .4s;
+  background: linear-gradient(90deg, #ffd479, #ff9f5c);
+}
+.progress-text { margin-top: 8px; font-size: 14px; color: #d8c9f0; min-height: 18px; }
+
+/* --- inspector --- */
+.inspector {
+  background: #1a1426; border: 1px solid #2e2440; border-radius: 16px;
+  padding: 18px; min-height: 120px;
+}
+.inspector h3 { margin: 0 0 12px; font-size: 16px; color: #ffd479; }
+.scene-row { padding: 10px 0; border-bottom: 1px solid #271f38; }
+.scene-row:last-child { border-bottom: 0; }
+.scene-role { font-size: 12px; color: #ffb35c; font-weight: 700; }
+.scene-voice { color: #efe7ff; margin-top: 2px; }
+.scene-prompt { color: #9d8cc0; font-size: 13px; margin-top: 4px; }
+
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.tile {
+  aspect-ratio: 9/16; border-radius: 12px; overflow: hidden; background: #120d18;
+  border: 1px solid #2e2440; display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.tile img, .tile video { width: 100%; height: 100%; object-fit: cover; }
+.tile.empty::after {
+  content: "…"; color: #5a4780; font-size: 28px;
+}
+.tile.loading::after {
+  content: ""; width: 22px; height: 22px; border-radius: 50%;
+  border: 3px solid #4b3a63; border-top-color: #ffb35c; animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.note { color: #b3a3cc; font-size: 14px; line-height: 1.5; }
+video.player { width: 100%; border-radius: 14px; background: #000; }
 .dl {
   display: inline-block; margin-top: 14px; padding: 12px 22px; border-radius: 12px;
   background: #2f7a45; color: #fff; text-decoration: none; font-weight: 700;
