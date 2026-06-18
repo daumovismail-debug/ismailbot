@@ -7,8 +7,9 @@ async function init() {
     const badge = $("#mode");
     if (st.mode === "real") {
       const on = [];
-      if (st.openai) on.push("ChatGPT");
-      if (st.xai) on.push("Grok");
+      if (st.openclaw) on.push("OpenClaw (подписка)");
+      if (st.openai) on.push("ChatGPT API");
+      if (st.xai) on.push("Grok API");
       if (st.elevenlabs) on.push("ElevenLabs");
       badge.textContent = "● реальный режим: " + on.join(" + ");
       badge.className = "badge real";

@@ -1,7 +1,7 @@
 """МОДУЛЬ 2 — СЦЕНАРИЙ. 5 сцен по формуле Хук→Проблема→Дно→Перелом→Финал."""
 import json
 
-from ..integrations import openai_api
+from ..integrations import openai_api, openclaw_cli
 
 SCENE_ROLES = ["ХУК", "ПРОБЛЕМА", "ДНО", "ПЕРЕЛОМ", "ФИНАЛ+CTA"]
 
@@ -57,15 +57,18 @@ def _parse(text: str) -> list[dict] | None:
 
 def run(job, ctx: dict) -> str:
     idea = ctx["idea"]
-    raw = openai_api.chat(
-        SCRIPT_SYSTEM,
-        PROMPT.format(theme=idea["theme"], message=idea["message"]),
-    )
+    user = PROMPT.format(theme=idea["theme"], message=idea["message"])
+
+    # 1) OpenClaw (подписка ChatGPT) -> 2) OpenAI API -> 3) демо-шаблон
+    raw = openclaw_cli.chat(f"{SCRIPT_SYSTEM}\n\n{user}", session_key=f"svet-{job.id}")
+    source = "OpenClaw"
+    if not (raw and _parse(raw)):
+        raw = openai_api.chat(SCRIPT_SYSTEM, user)
+        source = "ChatGPT API"
+
     scenes = _parse(raw) if raw else None
     if not scenes:
         scenes = _fallback(idea)
         source = "демо-шаблон"
-    else:
-        source = "ChatGPT"
     ctx["scenes"] = scenes
     return f"5 сцен готовы ({source}): " + " / ".join(s["role"] for s in scenes)

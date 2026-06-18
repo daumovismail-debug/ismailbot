@@ -1,5 +1,6 @@
 """Конфигурация сервиса: ключи, модели, пути."""
 import os
+import shutil
 from pathlib import Path
 
 import imageio_ffmpeg
@@ -30,10 +31,18 @@ SCENE_SECONDS = int(os.getenv("SCENE_SECONDS", "5"))
 VIDEO_WIDTH = int(os.getenv("VIDEO_WIDTH", "1080"))
 VIDEO_HEIGHT = int(os.getenv("VIDEO_HEIGHT", "1920"))
 
+# --- OpenClaw (генерация под подпиской ChatGPT/Grok через локальный CLI) ---
+# Если на сервере установлен openclaw — картинки/видео идут через него
+# (твоя подписка), без платных API. Это приоритетный движок.
+OPENCLAW_BIN = shutil.which("openclaw")
+OPENCLAW_AGENT = os.getenv("OPENCLAW_AGENT", "main")
+USE_OPENCLAW = os.getenv("USE_OPENCLAW", "1") != "0" and bool(OPENCLAW_BIN)
+
 # Путь к бандл-бинарю ffmpeg (системный не требуется)
 FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
 
 # Флаги доступности реальных интеграций
+HAS_OPENCLAW = USE_OPENCLAW
 HAS_OPENAI = bool(OPENAI_API_KEY)
 HAS_XAI = bool(XAI_API_KEY)
 HAS_ELEVENLABS = bool(ELEVENLABS_API_KEY)

@@ -20,11 +20,13 @@ class CreateJob(BaseModel):
 @app.get("/api/status")
 def status():
     """Какие интеграции подключены (режим демо или реальный)."""
+    real = config.HAS_OPENCLAW or config.HAS_OPENAI or config.HAS_XAI
     return {
-        "openai": config.HAS_OPENAI,      # ChatGPT — картинки + сценарий
-        "xai": config.HAS_XAI,            # Grok — анимация
+        "openclaw": config.HAS_OPENCLAW,  # подписка ChatGPT/Grok через локальный CLI
+        "openai": config.HAS_OPENAI,      # ChatGPT API (запасной)
+        "xai": config.HAS_XAI,            # Grok API (запасной)
         "elevenlabs": config.HAS_ELEVENLABS,
-        "mode": "real" if (config.HAS_OPENAI or config.HAS_XAI) else "demo",
+        "mode": "real" if real else "demo",
     }
 
 
