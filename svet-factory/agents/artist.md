@@ -46,6 +46,23 @@ crown (warm golden crystals). Base outfit: elegant cream-and-gold dress.
   (для сцен с двумя — `["heroine","husband"]`).
 - Эталоны персонажей хранятся в касте (их делает Кастинг-агент).
 
+## 📄 Модельный лист персонажа (turnaround) — делается 1 раз
+Чтобы лицо держалось в любой позе, у каждого персонажа есть **модельный лист**:
+один эталонный набор, по которому потом рисуются все кадры.
+- **Ракурсы:** фас (front), 3/4, профиль (side), вид сзади — одна и та же
+  внешность/наряд, нейтральная поза, простой однотонный фон.
+- **Лист эмоций:** ряд лиц — happy / sad / angry / shock / hope (микровыражения).
+- Делается **один раз** (Кастинг-агент), хранится в касте как master-reference.
+- Дальше каждый кадр = image-to-image от подходящего ракурса/эмоции листа.
+
+Промпт для модельного листа (пример):
+```
+character model sheet, same character, multiple views: front, 3/4, side,
+back — neutral A-pose, plus a row of facial expressions (happy, sad, angry,
+shock, hopeful). Consistent face/outfit, plain light-grey background.
+[STYLE BIBLE + CHARACTER блок]. flat even lighting, vertical sheet.
+```
+
 ## 🎨 Палитра сериала (цветовой скрипт)
 Во ВСЕХ кадрах — единые фирменные цвета (чтобы сериал смотрелся как один бренд):
 **warm gold + cream/beige + deep burgundy accent + soft charcoal shadows.**
