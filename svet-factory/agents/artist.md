@@ -52,14 +52,24 @@ crown (warm golden crystals). Base outfit: elegant cream-and-gold dress.
 Этот набор добавляется в каждый промпт. (Можно поменять — но один на весь сериал.)
 
 ## 😢 Микровыражения (детальная эмоция лица)
-Не «грустит», а конкретные движения лица — так зритель верит и сопереживает:
-| Эмоция | Лицо (писать в промпт) |
-|--------|------------------------|
-| Счастье | eyes crinkled in a smile, cheeks raised, soft genuine smile |
-| Грусть | eyes welling with tears, lower lip trembling, brows raised inward, gaze down |
-| Злость | brows furrowed, nostrils flared, jaw clenched, intense stare |
-| Шок/предательство | eyes wide, mouth slightly open, frozen stare, hand to chest |
-| Страх | wide eyes, leaning back, tense shoulders |
+Правило: **никаких общих «sad/angry».** Для эмоции комбинируй минимум
+**глаза + брови + рот + поза + свет короны**. Чем точнее лицо — тем сильнее
+зритель верит и сопереживает. Пиши эти признаки в промпт (англ.):
+
+| Эмоция | Глаза | Брови | Рот | Поза/тело | Свет короны |
+|--------|-------|-------|-----|-----------|-------------|
+| Счастье | crinkled, sparkling | relaxed | genuine smile, raised cheeks | open, light | bright warm gold |
+| Грусть | welling with tears, glossy | raised inward | corners down, lip trembling | shoulders drop, gaze down | dim, faint |
+| Злость | narrowed, hard stare | furrowed, drawn together | lips pressed thin, jaw clenched | leaning in, tense | flickering red |
+| Шок/предательство | wide, pupils small | shot up | mouth slightly agape, frozen | recoiling, hand to chest | sudden flicker |
+| Страх | very wide, darting | raised & together | mouth tight or open | leaning back, hunched | unstable, trembling |
+| Надежда | soft, glistening, looking up | gently raised | faint hopeful smile | chin lifting | slowly warming |
+| Отчаяние/усталость | half-closed, dull | slack | parted, sighing | slumped | almost out |
+| Решимость | focused, steady | level, set | firm closed lips | straight back, chin up | steady glow |
+| Презрение | side glance | one raised | one-sided smirk | turned away | cold |
+
+> Подсказка: эмоция читается за доли секунды, поэтому лицо должно быть
+> **выразительным, чуть утрированным** (мультяшно), но не карикатурным.
 
 ## 👥 Мультиперсонажные сцены (двое+ в кадре)
 Когда в кадре несколько персонажей (муж↔жена):
