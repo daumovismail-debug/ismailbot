@@ -3,7 +3,7 @@ import time
 import traceback
 
 from . import config
-from .jobs import Job
+from .jobs import Job, store
 from .modules import (
     m1_idea,
     m2_script,
@@ -37,11 +37,17 @@ def run_pipeline(job: Job) -> None:
     job.context["workdir"] = workdir
     if config.PUBLIC_BASE_URL:
         job.context["media_base"] = f"{config.PUBLIC_BASE_URL}/media/{job.id}"
+    store.save(job)
 
     for i, module in enumerate(MODULES):
         state = job.modules[i]
         state.status = "running"
         state.started_at = time.time()
+        # живой прогресс внутри модуля (например "рисую кадр 2/5…")
+        job.context["_progress"] = (
+            lambda text, s=state, j=job: (setattr(s, "detail", text), store.save(j))
+        )
+        store.save(job)
         try:
             detail = module.run(job, job.context)
             state.detail = detail or ""
@@ -52,8 +58,12 @@ def run_pipeline(job: Job) -> None:
             job.status = "error"
             job.error = f"{job.modules[i].name}: {e}"
             traceback.print_exc()
+            state.finished_at = time.time()
+            store.save(job)
             return
         finally:
             state.finished_at = time.time()
+            store.save(job)
 
     job.status = "done"
+    store.save(job)

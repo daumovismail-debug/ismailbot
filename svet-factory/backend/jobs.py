@@ -1,9 +1,16 @@
-"""Хранилище задач конвейера (in-memory) и модель статусов."""
+"""Хранилище задач конвейера (in-memory + на диск) и модель статусов."""
+import json
 import threading
 import time
 import uuid
 from dataclasses import dataclass, field, asdict
 from typing import Any
+
+from . import config
+
+# куда сохраняем задачи, чтобы они пережили перезапуск сервиса
+JOBS_DIR = config.OUTPUT_DIR / "jobs"
+JOBS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Названия 8 модулей в порядке прохождения
 MODULE_NAMES = [
@@ -58,6 +65,7 @@ class JobStore:
     def __init__(self) -> None:
         self._jobs: dict[str, Job] = {}
         self._lock = threading.Lock()
+        self._load()
 
     def create(self, theme: str) -> Job:
         job = Job(
@@ -67,6 +75,7 @@ class JobStore:
         )
         with self._lock:
             self._jobs[job.id] = job
+        self.save(job)
         return job
 
     def get(self, job_id: str) -> Job | None:
@@ -76,6 +85,57 @@ class JobStore:
     def all(self) -> list[Job]:
         with self._lock:
             return sorted(self._jobs.values(), key=lambda j: j.created_at, reverse=True)
+
+    # --- персистентность ---
+    def save(self, job: Job) -> None:
+        """Пишем состояние задачи на диск (переживает перезапуск сервиса)."""
+        data = {
+            "id": job.id,
+            "theme": job.theme,
+            "status": job.status,
+            "error": job.error,
+            "video_path": job.video_path,
+            "created_at": job.created_at,
+            "modules": [
+                {"name": m.name, "status": m.status, "detail": m.detail}
+                for m in job.modules
+            ],
+            "context": {k: job.context.get(k) for k in ("idea", "scenes", "storyboard")},
+        }
+        try:
+            (JOBS_DIR / f"{job.id}.json").write_text(
+                json.dumps(data, ensure_ascii=False), encoding="utf-8"
+            )
+        except Exception as e:  # noqa: BLE001
+            print(f"[jobs] save error: {e}", flush=True)
+
+    def _load(self) -> None:
+        for f in JOBS_DIR.glob("*.json"):
+            try:
+                d = json.loads(f.read_text(encoding="utf-8"))
+            except Exception:  # noqa: BLE001
+                continue
+            modules = [ModuleState(**m) for m in d.get("modules", [])]
+            status = d.get("status", "done")
+            # задача, прерванная падением сервиса, помечается как ошибка
+            if status in ("queued", "running"):
+                status = "error"
+                d["error"] = d.get("error") or "прервано (сервис перезапускался)"
+                for m in modules:
+                    if m.status == "running":
+                        m.status = "error"
+                        m.detail = m.detail or "прервано перезапуском сервиса"
+            job = Job(
+                id=d["id"],
+                theme=d.get("theme", ""),
+                status=status,
+                modules=modules,
+                video_path=d.get("video_path"),
+                error=d.get("error"),
+                created_at=d.get("created_at", time.time()),
+            )
+            job.context = d.get("context") or {}
+            self._jobs[job.id] = job
 
 
 store = JobStore()

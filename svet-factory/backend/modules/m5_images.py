@@ -13,10 +13,13 @@ def run(job, ctx: dict) -> str:
     storyboard = ctx["storyboard"]
     session_key = f"svet-{job.id}"
 
+    progress = ctx.get("_progress")
     image_paths: list[str | None] = []
     real = 0
     engine = "демо"
     for i, shot in enumerate(storyboard):
+        if progress:
+            progress(f"рисую кадр {i + 1}/{len(storyboard)}… (~1.5 мин на кадр)")
         img = openclaw_cli.generate_image(shot["image_prompt"], session_key=session_key)
         if img:
             engine = "OpenClaw"

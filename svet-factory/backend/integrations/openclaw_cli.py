@@ -100,7 +100,7 @@ def chat(message: str, session_key: str | None = None,
 
 
 def generate_image(prompt: str, session_key: str | None = None,
-                   timeout: int = 300) -> bytes | None:
+                   timeout: int = 200) -> bytes | None:
     if not available():
         return None
     msg = (

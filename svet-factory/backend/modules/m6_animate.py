@@ -5,6 +5,7 @@ OpenClaw на том же сервере, поэтому отдаём ему л�
 """
 from pathlib import Path
 
+from .. import config
 from ..integrations import openclaw_cli, xai
 
 
@@ -15,15 +16,19 @@ def run(job, ctx: dict) -> str:
     media_base = ctx.get("media_base")
     session_key = f"svet-{job.id}"
 
+    progress = ctx.get("_progress")
     video_paths: list[str | None] = []
     real = 0
     engine = "демо"
     for i, shot in enumerate(storyboard):
+        if progress:
+            progress(f"оживляю кадр {i + 1}/{len(storyboard)}…")
         clip = None
         img_path = image_paths[i]
 
-        # 1) OpenClaw — отдаём локальный путь к кадру
-        if img_path:
+        # 1) OpenClaw — отдаём локальный путь к кадру (только если явно включено,
+        #    иначе пропускаем: видео может надолго зависать)
+        if img_path and config.USE_OPENCLAW_VIDEO:
             clip = openclaw_cli.generate_video(
                 shot["motion_prompt"], image_path=img_path, session_key=session_key
             )
@@ -48,4 +53,4 @@ def run(job, ctx: dict) -> str:
     ctx["video_paths"] = video_paths
     if real:
         return f"Оживлено клипов: {real}/{len(storyboard)} ({engine})"
-    return "Анимация: демо/Ken Burns — на монтаже оживим кадры зумом"
+    return "Анимация: плавный зум (Ken Burns) по кадрам — видео-движок отключён"

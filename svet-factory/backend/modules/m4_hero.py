@@ -13,6 +13,9 @@ def run(job, ctx: dict) -> str:
     hero_path = workdir / "hero.png"
     session_key = f"svet-{job.id}"  # общая сессия => консистентная героиня
 
+    progress = ctx.get("_progress")
+    if progress:
+        progress("рисую эталон героини… (~1.5 мин)")
     img = openclaw_cli.generate_image(idea_bank.HERO_PASSPORT, session_key=session_key)
     if img:
         hero_path.write_bytes(img)

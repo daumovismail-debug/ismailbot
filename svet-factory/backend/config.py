@@ -37,6 +37,10 @@ VIDEO_HEIGHT = int(os.getenv("VIDEO_HEIGHT", "1920"))
 OPENCLAW_BIN = shutil.which("openclaw")
 OPENCLAW_AGENT = os.getenv("OPENCLAW_AGENT", "main")
 USE_OPENCLAW = os.getenv("USE_OPENCLAW", "1") != "0" and bool(OPENCLAW_BIN)
+# Видео через OpenClaw по умолчанию ВЫКЛ: оно может долго висеть, если у
+# подписки нет видео-движка. Пока включаем -> анимация = плавный зум (Ken Burns).
+# Поставь USE_OPENCLAW_VIDEO=1, когда подключишь рабочий видео-провайдер (Grok).
+USE_OPENCLAW_VIDEO = os.getenv("USE_OPENCLAW_VIDEO", "0") == "1"
 
 # Путь к бандл-бинарю ffmpeg (системный не требуется)
 FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
