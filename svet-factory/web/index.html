@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🏭 СВЕТ — фабрика видео</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>🏭 СВЕТ</h1>
+      <p class="sub">Фабрика коротких видео — люстры, женщины 30+</p>
+      <span id="mode" class="badge">…</span>
+    </header>
+
+    <section class="panel">
+      <label>Тема ролика</label>
+      <input id="theme" list="ideas" placeholder="Выбери из банка или впиши свою…" />
+      <datalist id="ideas"></datalist>
+      <button id="start">▶ Создать ролик</button>
+    </section>
+
+    <section id="board" class="board hidden">
+      <h2>Конвейер</h2>
+      <ol id="modules"></ol>
+      <div id="result" class="result hidden">
+        <video id="player" controls playsinline></video>
+        <a id="download" class="dl" download>⬇ Скачать ролик</a>
+      </div>
+    </section>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>
