@@ -50,6 +50,7 @@
   "signature": "часто хмурится",
   "character": "скуповат, упрямый, в душе любит",
   "voice_hint": "низкий уверенный мужской голос",
+  "voice_id": "VOICE_HUSBAND",
   "reference": "cast/husband.png",
   "auto": false
 }
