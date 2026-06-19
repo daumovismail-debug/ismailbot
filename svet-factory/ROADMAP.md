@@ -37,7 +37,7 @@
 | 📈 Аналитик | `agents/analyst.md` | ✅ |
 | 📕 Паспорт+каста | `agents/project-bible.md` | ✅ |
 | 🎛️ Протокол связки | `agents/orchestration.md` | ✅ |
-| 🚀 Издатель | `agents/publisher.md` | ⏳ A2 |
+| 🚀 Издатель | `agents/publisher.md` | ✅ |
 | 🤝 Помощники | `agents/helpers/*` | ⏳ A2 |
 
 ## Решено — учесть при реализации
