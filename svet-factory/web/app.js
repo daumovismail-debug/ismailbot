@@ -160,6 +160,23 @@ function renderInspector(idx) {
     case "ЗВУК":
       html += `<div class="note">${m.detail || "Озвучка реплик."}</div>`;
       break;
+    case "КОНТРОЛЬ": {
+      const qc = ctx.qc;
+      html += `<div class="note">${m.detail || note(m)}</div>`;
+      if (qc) html += `<div class="note">Кадры: ${qc.frames_ok}/${qc.frames_total}${qc.demo ? " (демо-плейсхолдеры)" : ""}${(qc.issues||[]).length ? " · ⚠️ " + qc.issues.join(", ") : " · ✅"}</div>`;
+      break;
+    }
+    case "ПУБЛИКАЦИЯ": {
+      const p = ctx.publish;
+      if (p) {
+        html += `<div class="scene-row"><div class="scene-role">Подпись</div><div class="scene-voice">${p.caption || ""}</div></div>`;
+        if (p.hashtags) html += `<div class="scene-row"><div class="scene-prompt">${(p.hashtags||[]).join(" ")}</div></div>`;
+        if (p.first_comment) html += `<div class="scene-row"><div class="scene-role">1-й коммент</div><div class="scene-voice">${p.first_comment}</div></div>`;
+        if (p.post_time) html += `<div class="scene-row"><div class="scene-prompt">🕒 ${p.post_time}</div></div>`;
+        html += `<div class="note">Постинг — вручную/планировщиком (API соцсетей ограничены).</div>`;
+      } else html += note(m);
+      break;
+    }
     case "МОНТАЖ":
       if (media.video) {
         html += `<video class="player" controls playsinline src="${media.video}"></video>

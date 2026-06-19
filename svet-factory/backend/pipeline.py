@@ -13,6 +13,8 @@ from .modules import (
     m6_animate,
     m7_voice,
     m8_assemble,
+    m9_control,
+    m10_publish,
 )
 
 # модули в порядке прохождения (совпадает с jobs.MODULE_NAMES)
@@ -25,6 +27,8 @@ MODULES = [
     m6_animate,
     m7_voice,
     m8_assemble,
+    m9_control,
+    m10_publish,
 ]
 
 

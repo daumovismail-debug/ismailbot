@@ -12,6 +12,9 @@ def run(job, ctx: dict) -> str:
     voice_paths = ctx.get("voice_paths", [None] * len(storyboard))
 
     scene_clips: list[Path] = []
+    # длительность кадра подгоняем так, чтобы вся серия укладывалась в 45–60 сек
+    n = max(1, len(storyboard))
+    secs = max(3, min(config.SCENE_SECONDS, round(58 / n)))
     for i, shot in enumerate(storyboard):
         out = workdir / f"scene_clip_{i}.mp4"
         v = Path(video_paths[i]) if video_paths[i] else None
@@ -20,7 +23,7 @@ def run(job, ctx: dict) -> str:
         # подпись = реплика (станет субтитром поверх кадра)
         ffmpeg_tool.make_scene_clip(
             out_path=out,
-            seconds=config.SCENE_SECONDS,
+            seconds=secs,
             video_src=v,
             image_src=img,
             voice_src=voice,
@@ -31,5 +34,5 @@ def run(job, ctx: dict) -> str:
     final = config.OUTPUT_DIR / f"{job.id}.mp4"
     ffmpeg_tool.concat_clips(scene_clips, final)
     job.video_path = str(final)
-    total = config.SCENE_SECONDS * len(scene_clips)
-    return f"Готовый ролик собран: {len(scene_clips)} сцен, ~{total} сек → {final.name}"
+    total = secs * len(scene_clips)
+    return f"Готовый ролик собран: {len(scene_clips)} кадров × {secs}с ≈ {total} сек → {final.name}"

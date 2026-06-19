@@ -22,6 +22,8 @@ MODULE_NAMES = [
     "АНИМАЦИЯ",
     "ЗВУК",
     "МОНТАЖ",
+    "КОНТРОЛЬ",
+    "ПУБЛИКАЦИЯ",
 ]
 
 
@@ -55,6 +57,8 @@ class Job:
             "idea": ctx.get("idea"),
             "scenes": ctx.get("scenes"),
             "storyboard": ctx.get("storyboard"),
+            "qc": ctx.get("qc"),
+            "publish": ctx.get("publish"),
         }
         d["context"] = safe_ctx
         d["has_video"] = bool(self.video_path)
