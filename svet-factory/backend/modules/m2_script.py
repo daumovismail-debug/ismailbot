@@ -1,74 +1,73 @@
-"""МОДУЛЬ 2 — СЦЕНАРИЙ. 5 сцен по формуле Хук→Проблема→Дно→Перелом→Финал."""
-import json
+"""МОДУЛЬ 2 — СЦЕНАРИЙ (микро-драма, 10–14 кадров).
 
-from ..integrations import openai_api, openclaw_cli
+Подключён к рецепту agents/scenarist.md через agent_runner (Этап B).
+Формат кадра ~ SCHEMA.md: {id, act, voice, beat, light}.
+Без LLM — берём встроенный демо-сериал «Люстра или развод» (cold open + клиффхэнгер).
+"""
+from .. import agent_runner
 
-SCENE_ROLES = ["ХУК", "ПРОБЛЕМА", "ДНО", "ПЕРЕЛОМ", "ФИНАЛ+CTA"]
+TASK_TPL = (
+    "Напиши Серию 1 микро-драмы на тему «{theme}». 10–14 кадров, формат строго по "
+    "твоей инструкции (cold open → перемотка → повороты → клиффхэнгер). "
+    "Верни JSON-объект с полем shots[] (id, act, voice_kz, voice_ru, on_screen, light)."
+)
 
-SCRIPT_SYSTEM = ("Ты — сценарист коротких вертикальных видео для женщин 30+ в нише "
-                 "освещения/люстр. Пиши живо, цепляюще, с драмой.")
-
-PROMPT = """Герой — Pixar-девушка с хрустальной люстрой-короной, её свет
-отражает её эмоции (грустит — тускнеет, счастлива — сияет).
-
-Тема: «{theme}»
-Посыл: {message}
-
-Напиши сценарий ровно на 5 сцен по формуле: ХУК, ПРОБЛЕМА, ДНО, ПЕРЕЛОМ, ФИНАЛ+CTA.
-Для каждой сцены дай короткую реплику закадрового голоса (1 фраза, живая, цепляющая).
-Верни СТРОГО JSON-массив из 5 объектов вида:
-[{{"role":"ХУК","voice":"текст реплики","beat":"что происходит в кадре"}}]
-Только JSON, без пояснений."""
-
-
-def _fallback(idea: dict) -> list[dict]:
-    """Базовый сценарий, если нет Gemini-ключа (демо-режим)."""
-    voices = [
-        "Раньше она освещала весь дом…",
-        "Светила мужу, детям, гостям. Всем — кроме себя.",
-        "И однажды её свет почти погас. А никто не обернулся.",
-        "Пока она не вспомнила: этот свет — её. И гореть он должен для неё.",
-        "Когда женщина светится для себя — сияет весь её дом. А ты давно зажигала свой свет?",
-    ]
-    beats = [
-        "героиня в тёплой гостиной, её люстра-корона тускло мерцает, грустные глаза",
-        "героиня освещает комнату, полную семьи, все наслаждаются светом, но не смотрят на неё",
-        "героиня одна в тёмной комнате, корона почти погасла",
-        "героиня у зеркала касается короны, загорается золотая искра, решимость",
-        "героиня сияет тёплым светом, вся роскошная комната светится, счастливая улыбка",
-    ]
-    return [
-        {"role": SCENE_ROLES[i], "voice": voices[i], "beat": beats[i]}
-        for i in range(5)
-    ]
+# Встроенный эталон на случай отсутствия LLM (демо-режим) — «Люстра или развод».
+_DEMO = [
+    ("COLD OPEN", "Купи мне эту люстру — или я ухожу!!", "героиня в слезах, чемодан у двери", "anger"),
+    ("COLD OPEN", "Как мы до этого дошли? 3 дня назад…", "титр на чёрном", "sad"),
+    ("ЗАВЯЗКА", "Эта люстра — мечта всей жизни.", "счастливая листает каталог", "happy"),
+    ("ЗАВЯЗКА", "Смотри, какая красота!", "показывает мужу телефон", "happy"),
+    ("ЗАВЯЗКА", "Ага, потом…", "муж отмахнулся, не глядя", "sad"),
+    ("ПОВОРОТ", "Я всё-таки её заказала.", "колеблется у ценника, заказывает", "hope"),
+    ("ПОВОРОТ", "Ты с ума сошла?! Это зарплата за месяц!", "муж увидел списание", "anger"),
+    ("ПОВОРОТ", "А это что?! Часы втрое дороже!", "находит его чек — шок", "shock"),
+    ("ЭСКАЛАЦИЯ", "Тебе можно, а мне нельзя?!", "ссора, крик", "anger"),
+    ("ЭСКАЛАЦИЯ", "Гони эту транжиру! — голос свекрови.", "звонок свекрови, масла в огонь", "anger"),
+    ("ЭСКАЛАЦИЯ", "Выбирай: люстра или развод.", "ставит чемодан, свет почти погас", "despair"),
+    ("КЛИФФХЭНГЕР", "Алло… это насчёт развода?", "муж молча набирает телефон", "shock"),
+    ("КЛИФФХЭНГЕР", "2 серия завтра 🔔 Кому он звонит?", "экран гаснет на её лице", "sad"),
+]
 
 
-def _parse(text: str) -> list[dict] | None:
-    try:
-        start = text.index("[")
-        end = text.rindex("]") + 1
-        scenes = json.loads(text[start:end])
-        if isinstance(scenes, list) and len(scenes) >= 5:
-            return scenes[:5]
-    except Exception:  # noqa: BLE001
-        pass
-    return None
+def _from_llm(data) -> list[dict] | None:
+    """Достаём кадры из ответа Сценариста (формат может слегка варьироваться)."""
+    if isinstance(data, dict):
+        shots = data.get("shots") or data.get("кадры")
+    elif isinstance(data, list):
+        shots = data
+    else:
+        shots = None
+    if not shots or len(shots) < 8:
+        return None
+    scenes = []
+    for i, s in enumerate(shots[:14], 1):
+        voice = s.get("voice_ru") or s.get("voice_kz") or s.get("title") or ""
+        scenes.append({
+            "id": i,
+            "role": s.get("act") or s.get("role") or "СЦЕНА",
+            "voice": voice,
+            "voice_kz": s.get("voice_kz", ""),
+            "beat": s.get("on_screen") or s.get("action") or s.get("beat") or "",
+            "light": s.get("light", ""),
+        })
+    return scenes
 
 
 def run(job, ctx: dict) -> str:
     idea = ctx["idea"]
-    user = PROMPT.format(theme=idea["theme"], message=idea["message"])
+    data = agent_runner.run_json(
+        "scenarist", TASK_TPL.format(theme=idea["theme"]), session_key=f"svet-{job.id}"
+    )
+    scenes = _from_llm(data)
+    if scenes:
+        source = "Сценарист (LLM)"
+    else:
+        scenes = [
+            {"id": i + 1, "role": r, "voice": v, "voice_kz": "", "beat": b, "light": lt}
+            for i, (r, v, b, lt) in enumerate(_DEMO)
+        ]
+        source = "демо-сериал"
 
-    # 1) OpenClaw (подписка ChatGPT) -> 2) OpenAI API -> 3) демо-шаблон
-    raw = openclaw_cli.chat(f"{SCRIPT_SYSTEM}\n\n{user}", session_key=f"svet-{job.id}")
-    source = "OpenClaw"
-    if not (raw and _parse(raw)):
-        raw = openai_api.chat(SCRIPT_SYSTEM, user)
-        source = "ChatGPT API"
-
-    scenes = _parse(raw) if raw else None
-    if not scenes:
-        scenes = _fallback(idea)
-        source = "демо-шаблон"
     ctx["scenes"] = scenes
-    return f"5 сцен готовы ({source}): " + " / ".join(s["role"] for s in scenes)
+    return f"Сценарий готов ({source}): {len(scenes)} кадров, cold open → клиффхэнгер"

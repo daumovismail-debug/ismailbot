@@ -72,11 +72,11 @@ class Job:
         if folder.exists():
             if (folder / "hero.png").exists():
                 media["hero"] = f"{base}/hero.png"
-            for i in range(12):
+            for i in range(24):
                 p = folder / f"scene_{i}.png"
                 if p.exists():
                     media["scenes"].append(f"{base}/scene_{i}.png")
-            for i in range(12):
+            for i in range(24):
                 p = folder / f"clip_{i}.mp4"
                 if p.exists():
                     media["clips"].append(f"{base}/clip_{i}.mp4")
