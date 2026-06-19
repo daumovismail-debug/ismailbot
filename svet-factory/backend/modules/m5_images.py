@@ -18,6 +18,13 @@ def run(job, ctx: dict) -> str:
     real = 0
     engine = "демо"
     for i, shot in enumerate(storyboard):
+        # чекпоинт: если кадр уже сгенерирован (повтор/докрутка) — переиспользуем
+        existing = workdir / f"scene_{i}.png"
+        if existing.exists() and existing.stat().st_size > 0:
+            image_paths.append(str(existing))
+            real += 1
+            engine = "чекпоинт"
+            continue
         if progress:
             progress(f"рисую кадр {i + 1}/{len(storyboard)}… (~1.5 мин на кадр)")
         img = openclaw_cli.generate_image(shot["image_prompt"], session_key=session_key)

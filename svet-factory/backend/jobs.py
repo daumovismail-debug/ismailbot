@@ -23,6 +23,7 @@ MODULE_NAMES = [
     "ЗВУК",
     "МОНТАЖ",
     "КОНТРОЛЬ",
+    "АНАЛИТИК",
     "ПУБЛИКАЦИЯ",
 ]
 
@@ -57,7 +58,10 @@ class Job:
             "idea": ctx.get("idea"),
             "scenes": ctx.get("scenes"),
             "storyboard": ctx.get("storyboard"),
+            "brief": ctx.get("brief"),
+            "voice_plan": ctx.get("voice_plan"),
             "qc": ctx.get("qc"),
+            "forecast": ctx.get("forecast"),
             "publish": ctx.get("publish"),
         }
         d["context"] = safe_ctx

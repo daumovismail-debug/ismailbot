@@ -115,6 +115,8 @@ function renderInspector(idx) {
       html += ctx.idea
         ? `<div class="note"><b>${ctx.idea.theme}</b><br>${ctx.idea.message}</div>`
         : note(m);
+      if (ctx.brief) html += `<div class="scene-row"><div class="scene-role">Бриф режиссёра</div>
+        <div class="scene-prompt">тон: ${ctx.brief.tone || ""} · конфликт: ${ctx.brief.core_conflict || ""} · эмоция: ${ctx.brief.target_emotion || ""}</div></div>`;
       break;
     case "СЦЕНАРИЙ":
       if (ctx.scenes) {
@@ -164,6 +166,16 @@ function renderInspector(idx) {
       const qc = ctx.qc;
       html += `<div class="note">${m.detail || note(m)}</div>`;
       if (qc) html += `<div class="note">Кадры: ${qc.frames_ok}/${qc.frames_total}${qc.demo ? " (демо-плейсхолдеры)" : ""}${(qc.issues||[]).length ? " · ⚠️ " + qc.issues.join(", ") : " · ✅"}</div>`;
+      break;
+    }
+    case "АНАЛИТИК": {
+      const f = ctx.forecast;
+      if (f) {
+        html += `<div class="scene-row"><div class="scene-role">Прогноз хука</div>
+          <div class="scene-voice">${f.hook_score}/100 — ${f.verdict || ""}</div></div>`;
+        if (f.predicted_intro_retention) html += `<div class="scene-prompt">удержание 3с: ${f.predicted_intro_retention}</div>`;
+        if (f.fixes) html += `<div class="note">Советы: ${(f.fixes||[]).join("; ")}</div>`;
+      } else html += note(m);
       break;
     }
     case "ПУБЛИКАЦИЯ": {
