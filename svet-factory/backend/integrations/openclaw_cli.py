@@ -99,6 +99,27 @@ def chat(message: str, session_key: str | None = None,
     return out
 
 
+def compare_faces(ref_path: str, img_path: str, timeout: int = 120) -> float | None:
+    """Vision-сверка: тот же ли персонаж на кадре, что и на эталоне. -> 0..1 или None.
+
+    Просим агента открыть оба файла и вернуть face_match. Работает на сервере, где
+    OpenClaw имеет доступ к файлам. Best-effort.
+    """
+    if not available():
+        return None
+    msg = (
+        f"Open these two image files and compare the MAIN character:\n"
+        f"REFERENCE: {ref_path}\nNEW: {img_path}\n"
+        "Is it the same character (face, hair/crown, outfit)? Reply ONLY JSON: "
+        '{"face_match":0.0-1.0,"same":true/false}'
+    )
+    out = _run_agent(msg, timeout, session_key=None)
+    if not out:
+        return None
+    m = re.search(r'"face_match"\s*:\s*([01](?:\.\d+)?)', out)
+    return float(m.group(1)) if m else None
+
+
 def generate_image(prompt: str, session_key: str | None = None,
                    timeout: int = 200) -> bytes | None:
     if not available():

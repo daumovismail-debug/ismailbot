@@ -4,6 +4,7 @@ import traceback
 
 from . import config
 from .jobs import Job, store
+from .validate import validate
 from .modules import (
     m1_idea,
     m2_script,
@@ -58,6 +59,10 @@ def run_pipeline(job: Job) -> None:
             detail = module.run(job, job.context)
             state.detail = detail or ""
             state.status = "done"
+            # гейт-проверка контракта (SCHEMA): не валим, но помечаем
+            warns = validate(state.name, job.context)
+            if warns:
+                state.detail = (state.detail + "  ⚠ гейт: " + "; ".join(warns)).strip()
         except Exception as e:  # noqa: BLE001
             state.status = "error"
             state.detail = str(e)
