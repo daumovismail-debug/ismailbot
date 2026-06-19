@@ -15,9 +15,19 @@ Pixar/Disney 3D, Unreal Engine 5 render, мягкие формы, тёплый �
 ## 🎨 Палитра (едина для всего)
 warm gold · cream/beige · deep burgundy accent · soft charcoal shadows.
 
-## 💡 Свет = эмоция (общее правило)
-happy → bright warm gold · грусть → dim/faint · злость → flickering red ·
-страх/шок → unstable trembling light + deep shadows · надежда → slowly warming.
+## 💡 Свет = эмоция (КАНОН — единый enum, все агенты ссылаются на него)
+Сценарист ставит `light` = одно из значений; Художник/Аниматор берут визуал отсюда:
+| enum | свет короны (картинка) | анимация (видео) |
+|------|------------------------|------------------|
+| `happy` | bright warm gold | мягко «дышит» золотом |
+| `sad` | dim, faint, cool | тускнеет, мерцает |
+| `anger` | flickering red | резкое мигание красным |
+| `shock` | unstable trembling + deep shadows | внезапная вспышка/дрожь |
+| `fear` | unstable, low, harsh shadows | дрожащий, нестабильный |
+| `hope` | slowly warming | разгорается золотом |
+| `despair` | almost out | почти гаснет |
+| `resolve` | steady glow | ровное свечение |
+| `contempt` | cold, side-lit | холодный, без тепла |
 
 ## 🗣️ Язык
 Произносимые реплики — **разговорный казахский** (+ RU перевод для проверки).

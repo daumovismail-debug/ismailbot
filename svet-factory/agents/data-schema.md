@@ -43,9 +43,16 @@
 | `verdict` | вывод Аналитика | — |
 | `learnings` | что забрали в примеры агентов | — |
 
-## Пример (CSV-заголовок)
+## Доп. поля (по аудиту — обязательно)
+- `post_url` (вместе с `post_id`) · `trending_sound` · `first_comment` · `cta` —
+  то, что делает Издатель и тестирует A/B.
+- `view_velocity_24h`, `view_velocity_48h` — для порогов 10×/50× (Аналитик).
+- **Качество (от Контролёра):** `qc_pass`, `face_match_avg`, `retries`, `fail_reasons`.
+- `kz_approved` — носитель проверил казахский (да/нет).
+
+## CSV-заголовок (актуальный — см. `data/experiments.csv`)
 ```
-id,project,episode,theme,hook_type,hook_text,length_sec,characters,platform,post_id,post_time,caption,hashtags,cover,ab_variant,views,intro_retention,completion,avg_watch_sec,shares,saves,comments,rewatch,follows,verdict,learnings
+id,project,episode,theme,hook_type,hook_text,length_sec,characters,platform,post_url,post_id,post_time,caption,hashtags,cover,trending_sound,first_comment,cta,ab_variant,views,view_velocity_24h,view_velocity_48h,intro_retention,completion,avg_watch_sec,shares,saves,comments,rewatch,follows,qc_pass,face_match_avg,retries,fail_reasons,kz_approved,verdict,learnings
 ```
 
 ## Как это замыкает обучение (цикл)
