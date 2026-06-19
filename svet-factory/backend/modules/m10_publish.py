@@ -4,6 +4,7 @@
 чтобы выложить нативным планировщиком или вручную. Пишется в ctx["publish"].
 """
 from .. import agent_runner
+from ..integrations import telegram
 
 
 def _demo_package(idea: dict, scenes: list) -> dict:
@@ -30,5 +31,12 @@ def run(job, ctx: dict) -> str:
     data = agent_runner.run_json("publisher", task, session_key=f"svet-{job.id}")
     pkg = data if isinstance(data, dict) and data.get("caption") else _demo_package(idea, scenes)
     source = "Издатель (LLM)" if (isinstance(data, dict) and data.get("caption")) else "демо-шаблон"
+    # выгрузка готового ролика в Telegram-архив (если настроен)
+    tg = telegram.send_video(job.video_path, pkg.get("caption", "")) if job.video_path else None
+    if tg:
+        pkg["telegram_url"] = tg
+
     ctx["publish"] = pkg
-    return f"Пакет публикации готов ({source}): подпись + хэштеги + обложка + время. Постинг — вручную/планировщиком."
+    tg_note = f" Залит в Telegram: {tg}" if tg else ""
+    return (f"Пакет публикации готов ({source}): подпись + хэштеги + обложка + время."
+            f"{tg_note} Постинг — вручную/планировщиком.")

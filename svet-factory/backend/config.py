@@ -15,6 +15,9 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 XAI_API_KEY = os.getenv("XAI_API_KEY", "").strip()
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "").strip()
+# Telegram-хранилище готовых роликов (бот + канал/чат)
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "").strip()
 
 # --- Модели ---
 OPENAI_TEXT_MODEL = os.getenv("OPENAI_TEXT_MODEL", "gpt-4o-mini")
@@ -50,3 +53,4 @@ HAS_OPENCLAW = USE_OPENCLAW
 HAS_OPENAI = bool(OPENAI_API_KEY)
 HAS_XAI = bool(XAI_API_KEY)
 HAS_ELEVENLABS = bool(ELEVENLABS_API_KEY)
+HAS_TELEGRAM = bool(TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID)
