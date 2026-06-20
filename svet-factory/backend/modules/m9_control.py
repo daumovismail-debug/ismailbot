@@ -1,45 +1,74 @@
 """МОДУЛЬ 9 — КОНТРОЛЬ. Финальная проверка качества (по controller.md).
 
-Сейчас (демо/без vision) — базовые проверки: все кадры на месте, формат, длина.
-Vision-сверка лица с эталоном (face_match) подключается на Этапе E через подписку.
+Базовые проверки (всегда): все кадры на месте, есть финал, длина 45–60.
+Vision-сверка (если есть OpenClaw): каждый выборочный кадр сравнивается с эталоном
+ТОГО персонажа, что в этом кадре (по storyboard.references), с тип-зависимым порогом
+(люди — строже, не-люди вроде кота — мягче). Так лочим не только героиню.
 """
 from pathlib import Path
 
 from .. import config
 from ..integrations import openclaw_cli
 
+THR_HUMAN = 0.60
+THR_OTHER = 0.55   # животные/объекты: консистентность мягче (vision, не ArcFace)
+
 
 def run(job, ctx: dict) -> str:
     storyboard = ctx.get("storyboard", [])
     image_paths = ctx.get("image_paths", [None] * len(storyboard))
+    workdir = ctx.get("workdir")
+    cast = ctx.get("cast", [])
+    type_by_id = {c.get("id"): c.get("type", "human") for c in cast}
 
     have = sum(1 for p in image_paths if p and Path(p).exists())
     total = len(storyboard)
-    expect_real = config.HAS_OPENCLAW or config.HAS_OPENAI  # ждём реальные кадры?
+    expect_real = config.HAS_OPENCLAW or config.HAS_OPENAI
     issues = []
     if expect_real and have < total:
         issues.append(f"нет картинок: {total - have}/{total}")
     if not (job.video_path and Path(job.video_path).exists()):
         issues.append("нет финального видео")
 
-    # vision-сверка лица с эталоном (если есть OpenClaw + эталон + кадры)
-    face_scores: list[float] = []
-    hero = ctx.get("hero_path")
-    if openclaw_cli.available() and hero and Path(hero).exists():
-        real_frames = [p for p in image_paths if p and Path(p).exists()]
-        for p in real_frames[:3]:                 # выборка до 3 кадров (экономим вызовы)
-            fm = openclaw_cli.compare_faces(hero, p)
+    secs = int(ctx.get("_episode_secs", 0))
+    if secs and not (40 <= secs <= 62):
+        issues.append(f"длина {secs}с вне 45–60")
+
+    def _ref(cid: str):
+        if not workdir:
+            return None
+        name = "hero.png" if cid == "heroine" else f"char_{cid}.png"
+        p = Path(workdir) / name
+        return str(p) if p.exists() else None
+
+    # vision-сверка облика по персонажу кадра (выборка: начало/середина/конец)
+    checked: list[tuple[str, float]] = []
+    if openclaw_cli.available() and workdir and total:
+        for i in dict.fromkeys([0, total // 2, total - 1]):   # уникальные индексы
+            if i >= len(image_paths):
+                continue
+            p = image_paths[i]
+            if not (p and Path(p).exists()):
+                continue
+            cid = (storyboard[i].get("references") or ["heroine"])[0]
+            rp = _ref(cid)
+            if not rp:
+                continue
+            fm = openclaw_cli.compare_faces(rp, p)
             if fm is not None:
-                face_scores.append(fm)
-        bad = [s for s in face_scores if s < 0.60]
+                checked.append((cid, fm))
+        bad = [(cid, fm) for cid, fm in checked
+               if fm < (THR_HUMAN if type_by_id.get(cid, "human") == "human" else THR_OTHER)]
         if bad:
-            issues.append(f"лицо «уплыло» на {len(bad)} из {len(face_scores)} (face_match<0.60)")
+            who = ", ".join(cid for cid, _ in bad)
+            issues.append(f"облик «уплыл» у {who} ({len(bad)} из {len(checked)})")
 
-    avg_fm = round(sum(face_scores) / len(face_scores), 2) if face_scores else None
+    avg_fm = round(sum(f for _, f in checked) / len(checked), 2) if checked else None
     ctx["qc"] = {"frames_ok": have, "frames_total": total,
-                 "demo": not expect_real, "face_match_avg": avg_fm, "issues": issues}
+                 "demo": not expect_real, "face_match_avg": avg_fm,
+                 "checked": len(checked), "issues": issues}
 
-    vision = (f"vision: face_match avg {avg_fm}" if avg_fm is not None
+    vision = (f"vision: облик avg {avg_fm} ({len(checked)} кадра)" if avg_fm is not None
               else ("vision готов (нет кадров для сверки)" if openclaw_cli.available()
                     else "vision выкл (демо)"))
     if issues:
