@@ -71,6 +71,14 @@ def run(job, ctx: dict) -> str:
         f"эмоция-цель={brief.get('target_emotion','')}; "
         f"визуал={brief.get('visual_mood','')}."
     )
+    # арка сезона: серия 2+ — продолжение от клиффхэнгера прошлой
+    cliff = ctx.get("prev_cliffhanger")
+    if job.episode > 1 and cliff:
+        task += (
+            f"\n\nЭто СЕРИЯ {job.episode} сезона. Прошлая серия закончилась на: "
+            f"«{cliff}». Продолжи историю с этого момента — новый виток и поворот, "
+            "те же герои, снова заверши резким клиффхэнгером."
+        )
     data = agent_runner.run_json("scenarist", task, session_key=f"svet-{job.id}")
     scenes = _from_llm(data)
     if scenes:

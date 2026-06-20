@@ -44,6 +44,8 @@ class Job:
     error: str | None = None
     created_at: float = field(default_factory=time.time)
     pause_index: int = 0          # с какого модуля продолжить после паузы (кастинг)
+    series_id: str = ""           # сериал (общий для всех серий); по умолчанию = свой id
+    episode: int = 1              # номер серии в сезоне
 
     def public(self) -> dict:
         """Безопасное представление для фронта. Строим вручную (без asdict —
@@ -55,6 +57,8 @@ class Job:
             "status": self.status,
             "error": self.error,
             "created_at": self.created_at,
+            "series_id": self.series_id or self.id,
+            "episode": self.episode,
             "modules": [
                 {"name": m.name, "status": m.status, "detail": m.detail}
                 for m in self.modules
@@ -101,9 +105,11 @@ class JobStore:
         self._lock = threading.RLock()
         self._load()
 
-    def create(self, theme: str) -> Job:
+    def create(self, theme: str, series_id: str = "", episode: int = 1) -> Job:
         job = Job(id=uuid.uuid4().hex[:12], theme=theme,
-                  modules=[ModuleState(name=n) for n in MODULE_NAMES])
+                  modules=[ModuleState(name=n) for n in MODULE_NAMES],
+                  episode=episode)
+        job.series_id = series_id or job.id   # новый сериал = свой id
         with self._lock:
             self._jobs[job.id] = job
         self.save(job)
@@ -131,6 +137,7 @@ class JobStore:
                 "error": job.error, "video_path": job.video_path,
                 "created_at": job.created_at, "workdir": str(wd) if wd else None,
                 "pause_index": job.pause_index,
+                "series_id": job.series_id, "episode": job.episode,
                 "modules": [{"name": m.name, "status": m.status, "detail": m.detail}
                             for m in job.modules],
                 "context": {k: ctx.get(k) for k in _SAFE_CTX_KEYS},
@@ -158,7 +165,9 @@ class JobStore:
             job = Job(id=d["id"], theme=d.get("theme", ""), status=status,
                       modules=modules, video_path=d.get("video_path"),
                       error=d.get("error"), created_at=d.get("created_at", time.time()),
-                      pause_index=d.get("pause_index", 0))
+                      pause_index=d.get("pause_index", 0),
+                      episode=d.get("episode", 1))
+            job.series_id = d.get("series_id") or d["id"]
             job.context = d.get("context") or {}
             if d.get("workdir"):
                 job.context["workdir"] = Path(d["workdir"])

@@ -82,9 +82,10 @@ async function loadLibrary() {
     const el = document.createElement("div");
     el.className = "card";
     el.style.animationDelay = (i * 0.04) + "s";
+    const epTag = j.episode > 1 ? `<span class="ep">С${j.episode}</span> ` : "";
     el.innerHTML = `<div class="card-thumb">${thumb}</div>
       <div class="card-body">
-        <div class="card-theme">${esc(j.theme || "Без темы")}</div>
+        <div class="card-theme">${epTag}${esc(j.theme || "Без темы")}</div>
         <span class="chip ${esc(j.status)}">${label[j.status] || esc(j.status)}</span>
       </div>`;
     el.onclick = () => openJob(j.id);
@@ -171,7 +172,8 @@ function runningIndex() {
 
 function render() {
   if (!job) return;
-  $("#boardTitle").textContent = job.theme || "Серия";
+  $("#boardTitle").textContent =
+    (job.episode > 1 ? `Серия ${job.episode} · ` : "") + (job.theme || "Серия");
 
   const stepper = $("#stepper");
   stepper.innerHTML = "";
@@ -267,6 +269,7 @@ function renderResult() {
     html += `<a class="act tg" href="${esc(p.telegram_url)}" target="_blank" rel="noopener">✈ В Telegram</a>`;
   if (p.caption)
     html += `<button class="act" id="copyCap">⧉ Копировать подпись</button>`;
+  html += `<button class="act" id="mkSequel">➕ Сделать ${(job.episode || 1) + 1}-ю серию</button>`;
   html += `</div>`;
   if (r.vibe_score != null) {
     const ok = r.accepted;
@@ -286,6 +289,22 @@ function renderResult() {
     cb.textContent = "✓ Скопировано";
     setTimeout(() => { cb.textContent = "⧉ Копировать подпись"; }, 1500);
   };
+
+  const ms = $("#mkSequel");
+  if (ms) ms.onclick = async () => {
+    ms.disabled = true;
+    ms.textContent = "Создаю продолжение…";
+    try {
+      const r = await fetch(`/api/jobs/${job.id}/sequel`, { method: "POST" });
+      if (r.ok) { const { id } = await r.json(); openJob(id); return; }
+      ms.disabled = false;
+      ms.textContent = r.status === 429 ? "Сервер занят — позже" : "➕ Сделать серию";
+    } catch (_) {
+      ms.disabled = false;
+      ms.textContent = "➕ Сделать серию";
+    }
+  };
+
   if (!resultShown) { $("#stagesWrap").open = false; resultShown = true; }
 }
 

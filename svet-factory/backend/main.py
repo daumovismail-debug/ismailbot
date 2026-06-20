@@ -78,6 +78,37 @@ def confirm_cast(job_id: str, body: CastUpdate):
     return {"ok": True}
 
 
+@app.post("/api/jobs/{job_id}/sequel")
+def make_sequel(job_id: str):
+    """Создать СЛЕДУЮЩУЮ серию сезона — продолжение от клиффхэнгера прошлой.
+
+    Каста и эталоны переиспользуются (та же героиня/персонажи) — консистентность
+    между сериями. Шаг кастинга пропускается (cast_confirmed).
+    """
+    prev = store.get(job_id)
+    if not prev:
+        raise HTTPException(404, "job not found")
+    if store.active_count() >= MAX_ACTIVE_JOBS:
+        raise HTTPException(429, f"занято: уже {MAX_ACTIVE_JOBS} активных задач, подожди")
+    scenes = prev.context.get("scenes") or []
+    cliff = ""
+    if scenes:
+        last = scenes[-1]
+        cliff = last.get("voice_ru") or last.get("voice", "")
+
+    job = store.create(prev.theme, series_id=prev.series_id or prev.id,
+                       episode=prev.episode + 1)
+    job.context["prev_cliffhanger"] = cliff
+    job.context["prev_theme"] = prev.theme
+    # переиспользуем касту прошлой серии (без повторного кастинга)
+    if prev.context.get("cast"):
+        job.context["cast"] = prev.context["cast"]
+        job.context["cast_confirmed"] = True
+    store.save(job)
+    threading.Thread(target=run_pipeline, args=(job,), daemon=True).start()
+    return {"id": job.id, "episode": job.episode}
+
+
 @app.get("/api/jobs/{job_id}")
 def get_job(job_id: str):
     job = store.get(job_id)
