@@ -40,6 +40,9 @@ def _int_env(name: str, default: int) -> int:
 SCENE_SECONDS = _int_env("SCENE_SECONDS", 5)
 VIDEO_WIDTH = _int_env("VIDEO_WIDTH", 1080)
 VIDEO_HEIGHT = _int_env("VIDEO_HEIGHT", 1920)
+# Общий бюджет времени на анимацию всей серии (сек). Защита от зависания
+# видео-движка: превысили — остаток кадров уходит на Ken Burns. 8 мин по умолчанию.
+ANIMATE_BUDGET_SEC = _int_env("ANIMATE_BUDGET_SEC", 480)
 
 # --- OpenClaw (генерация под подпиской ChatGPT/Grok через локальный CLI) ---
 # Если на сервере установлен openclaw — картинки/видео идут через него

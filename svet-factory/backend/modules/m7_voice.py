@@ -20,7 +20,7 @@ def run(job, ctx: dict) -> str:
         line_kz = s.get("voice_kz") or ""        # казахский (если Сценарист дал)
         line = line_kz or s.get("voice", "")
         plan.append({"id": s.get("id", i + 1), "voice_kz": line_kz,
-                     "voice_ru": s.get("voice", "")})
+                     "voice_ru": s.get("voice_ru", "")})
         audio = elevenlabs.tts(line) if line else None
         if audio:
             p = workdir / f"voice_{i}.mp3"

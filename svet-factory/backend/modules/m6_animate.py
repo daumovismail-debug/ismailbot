@@ -4,6 +4,7 @@
 OpenClaw на том же сервере, поэтому отдаём ему локальный путь к картинке.
 """
 from pathlib import Path
+import time
 
 from .. import config
 from ..integrations import openclaw_cli, xai
@@ -20,15 +21,23 @@ def run(job, ctx: dict) -> str:
     video_paths: list[str | None] = []
     real = 0
     engine = "демо"
+    # общий бюджет времени на анимацию всей серии: чтобы один зависший движок
+    # не держал задачу час (как было раньше). Превысили — остаток уходит на
+    # Ken Burns, серия всё равно соберётся.
+    deadline = time.monotonic() + config.ANIMATE_BUDGET_SEC
+    budget_hit = False
     for i, shot in enumerate(storyboard):
         if progress:
             progress(f"оживляю кадр {i + 1}/{len(storyboard)}…")
         clip = None
         img_path = image_paths[i] if i < len(image_paths) else None
+        out_of_time = time.monotonic() > deadline
+        if out_of_time:
+            budget_hit = True
 
         # 1) OpenClaw — отдаём локальный путь к кадру (только если явно включено,
         #    иначе пропускаем: видео может надолго зависать)
-        if img_path and config.USE_OPENCLAW_VIDEO:
+        if img_path and config.USE_OPENCLAW_VIDEO and not out_of_time:
             clip = openclaw_cli.generate_video(
                 shot["motion_prompt"], image_path=img_path, session_key=session_key
             )
@@ -36,7 +45,7 @@ def run(job, ctx: dict) -> str:
                 engine = "OpenClaw"
 
         # 2) запасной путь — Grok API по публичному URL кадра
-        if not clip and img_path and media_base:
+        if not clip and img_path and media_base and not out_of_time:
             url = f"{media_base}/{Path(img_path).name}"
             clip = xai.generate_video(shot["motion_prompt"], image_url=url)
             if clip:
@@ -52,5 +61,6 @@ def run(job, ctx: dict) -> str:
 
     ctx["video_paths"] = video_paths
     if real:
-        return f"Оживлено клипов: {real}/{len(storyboard)} ({engine})"
+        tail = " (лимит времени — остаток на Ken Burns)" if budget_hit else ""
+        return f"Оживлено клипов: {real}/{len(storyboard)} ({engine}){tail}"
     return "Анимация: плавный зум (Ken Burns) по кадрам — видео-движок отключён"

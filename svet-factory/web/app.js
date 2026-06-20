@@ -156,7 +156,9 @@ function renderInspector(idx) {
       if (ctx.scenes) {
         html += ctx.scenes.map((s) =>
           `<div class="scene-row"><div class="scene-role">${esc(s.role)}</div>
-           <div class="scene-voice">${esc(s.voice)}</div></div>`).join("");
+           <div class="scene-voice">🇰🇿 ${esc(s.voice)}</div>
+           ${s.voice_ru && s.voice_ru !== s.voice
+             ? `<div class="scene-prompt">🇷🇺 ${esc(s.voice_ru)}</div>` : ""}</div>`).join("");
       } else html += note(m);
       break;
     case "РАСКАДРОВКА":
