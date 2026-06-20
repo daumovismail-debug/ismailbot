@@ -8,6 +8,7 @@ from .validate import validate
 from .modules import (
     m1_idea,
     m2_script,
+    m_cast,
     m3_storyboard,
     m4_hero,
     m5_images,
@@ -24,6 +25,7 @@ from .modules import (
 MODULES = [
     m1_idea,
     m2_script,
+    m_cast,
     m3_storyboard,
     m4_hero,
     m5_images,
@@ -42,8 +44,12 @@ from .jobs import MODULE_NAMES  # noqa: E402
 assert len(MODULES) == len(MODULE_NAMES), "MODULES != MODULE_NAMES"
 
 
-def run_pipeline(job: Job) -> None:
-    """Запускается в фоновом потоке. Прогоняет задачу по конвейеру."""
+def run_pipeline(job: Job, start: int = 0) -> None:
+    """Запускается в фоновом потоке. Прогоняет задачу по конвейеру с `start`-модуля.
+
+    Если модуль помечен PAUSE_AFTER (кастинг) — останавливаемся со статусом
+    awaiting_cast и запоминаем, с какого модуля продолжить (job.pause_index).
+    """
     job.status = "running"
     # рабочая папка внутри output/, чтобы кадры были доступны по публичному URL
     workdir = config.OUTPUT_DIR / job.id
@@ -53,7 +59,8 @@ def run_pipeline(job: Job) -> None:
         job.context["media_base"] = f"{config.PUBLIC_BASE_URL}/media/{job.id}"
     store.save(job)
 
-    for i, module in enumerate(MODULES):
+    for i in range(start, len(MODULES)):
+        module = MODULES[i]
         state = job.modules[i]
         state.status = "running"
         state.started_at = time.time()
@@ -82,6 +89,13 @@ def run_pipeline(job: Job) -> None:
         finally:
             state.finished_at = time.time()
             store.save(job)
+
+        # пауза для подтверждения касты (только если не подтверждена ранее)
+        if getattr(module, "PAUSE_AFTER", False) and not job.context.get("cast_confirmed"):
+            job.pause_index = i + 1
+            job.status = "awaiting_cast"
+            store.save(job)
+            return
 
     job.status = "done"
     store.save(job)

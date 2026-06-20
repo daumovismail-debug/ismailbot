@@ -22,6 +22,10 @@ class CreateJob(BaseModel):
     theme: str | None = None
 
 
+class CastUpdate(BaseModel):
+    cast: list | None = None   # отредактированная каста; None = принять как есть
+
+
 @app.get("/api/status")
 def status():
     """Какие интеграции подключены (режим демо или реальный)."""
@@ -52,6 +56,23 @@ def create_job(body: CreateJob):
 @app.get("/api/jobs")
 def list_jobs():
     return [j.public() for j in store.all()]
+
+
+@app.post("/api/jobs/{job_id}/cast")
+def confirm_cast(job_id: str, body: CastUpdate):
+    """Подтвердить/поправить касту и продолжить конвейер после паузы кастинга."""
+    job = store.get(job_id)
+    if not job:
+        raise HTTPException(404, "job not found")
+    if job.status != "awaiting_cast":
+        raise HTTPException(409, "задача не ждёт подтверждения касты")
+    if body.cast is not None:
+        job.context["cast"] = body.cast        # ручные правки
+    job.context["cast_confirmed"] = True        # «пусть решит сам» = принять как есть
+    job.status = "running"
+    store.save(job)
+    threading.Thread(target=run_pipeline, args=(job, job.pause_index), daemon=True).start()
+    return {"ok": True}
 
 
 @app.get("/api/jobs/{job_id}")

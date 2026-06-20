@@ -15,13 +15,13 @@ STATE_DIR.mkdir(parents=True, exist_ok=True)
 
 # Названия модулей конвейера (должно совпадать с pipeline.MODULES по длине/порядку)
 MODULE_NAMES = [
-    "ИДЕЯ", "СЦЕНАРИЙ", "РАСКАДРОВКА", "ГЕРОЙ", "КАРТИНКИ", "АНИМАЦИЯ",
+    "ИДЕЯ", "СЦЕНАРИЙ", "КАСТИНГ", "РАСКАДРОВКА", "ГЕРОЙ", "КАРТИНКИ", "АНИМАЦИЯ",
     "ЗВУК", "МОНТАЖ", "КОНТРОЛЬ", "ПРИЁМКА", "АНАЛИТИК", "ПУБЛИКАЦИЯ",
 ]
 
 # поля контекста, которые безопасно отдавать наружу / сохранять
-_SAFE_CTX_KEYS = ("idea", "brief", "cast", "scenes", "storyboard", "voice_plan",
-                  "qc", "review", "forecast", "publish", "edl")
+_SAFE_CTX_KEYS = ("idea", "brief", "cast", "cast_confirmed", "scenes", "storyboard",
+                  "voice_plan", "qc", "review", "forecast", "publish", "edl")
 
 
 @dataclass
@@ -37,12 +37,13 @@ class ModuleState:
 class Job:
     id: str
     theme: str
-    status: str = "queued"       # queued | running | done | error
+    status: str = "queued"       # queued | running | awaiting_cast | done | error
     modules: list[ModuleState] = field(default_factory=list)
     context: dict[str, Any] = field(default_factory=dict)
     video_path: str | None = None
     error: str | None = None
     created_at: float = field(default_factory=time.time)
+    pause_index: int = 0          # с какого модуля продолжить после паузы (кастинг)
 
     def public(self) -> dict:
         """Безопасное представление для фронта. Строим вручную (без asdict —
@@ -70,7 +71,7 @@ class Job:
         folder = config.OUTPUT_DIR / self.id
         base = f"/media/{self.id}"
         media: dict[str, Any] = {"hero": None, "model_sheet": None,
-                                 "scenes": [], "clips": []}
+                                 "chars": [], "scenes": [], "clips": []}
 
         def _num(p: Path) -> int:
             # числовая сортировка: scene_2 < scene_10 (а не лексикографическая)
@@ -84,6 +85,8 @@ class Job:
                 media["hero"] = f"{base}/hero.png"
             if (folder / "model_sheet.png").exists():
                 media["model_sheet"] = f"{base}/model_sheet.png"
+            media["chars"] = [f"{base}/{p.name}" for p in
+                              sorted(folder.glob("char_*.png"))]
             media["scenes"] = [f"{base}/{p.name}" for p in
                                sorted(folder.glob("scene_*.png"), key=_num)]
             media["clips"] = [f"{base}/{p.name}" for p in
@@ -127,6 +130,7 @@ class JobStore:
                 "id": job.id, "theme": job.theme, "status": job.status,
                 "error": job.error, "video_path": job.video_path,
                 "created_at": job.created_at, "workdir": str(wd) if wd else None,
+                "pause_index": job.pause_index,
                 "modules": [{"name": m.name, "status": m.status, "detail": m.detail}
                             for m in job.modules],
                 "context": {k: ctx.get(k) for k in _SAFE_CTX_KEYS},
@@ -153,7 +157,8 @@ class JobStore:
                         m.status, m.detail = "error", (m.detail or "прервано перезапуском")
             job = Job(id=d["id"], theme=d.get("theme", ""), status=status,
                       modules=modules, video_path=d.get("video_path"),
-                      error=d.get("error"), created_at=d.get("created_at", time.time()))
+                      error=d.get("error"), created_at=d.get("created_at", time.time()),
+                      pause_index=d.get("pause_index", 0))
             job.context = d.get("context") or {}
             if d.get("workdir"):
                 job.context["workdir"] = Path(d["workdir"])

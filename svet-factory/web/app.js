@@ -151,7 +151,8 @@ function poll(id) {
       return;
     }
     render();
-    if (job.status === "done" || job.status === "error") clearInterval(timer);
+    // awaiting_cast — пауза для пользователя: прекращаем опрос, форма стабильна
+    if (["done", "error", "awaiting_cast"].includes(job.status)) clearInterval(timer);
   };
   tick();
   timer = setInterval(tick, 1500);
@@ -188,11 +189,63 @@ function render() {
   let txt = "";
   if (job.status === "done") txt = "✅ Готово — ролик ниже.";
   else if (job.status === "error") txt = "⚠️ " + (job.error || "ошибка");
+  else if (job.status === "awaiting_cast") txt = "⏸ Жду подтверждения касты ↓";
   else txt = `${cur.name}: ${cur.detail || "в работе…"}`;
   $("#progressText").textContent = txt;
 
   renderInspector(activeIdx);
-  renderResult();
+  if (job.status === "awaiting_cast") renderCasting();
+  else renderResult();
+}
+
+// ---------- кастинг: подтверждение персонажей ----------
+function renderCasting() {
+  const box = $("#result");
+  const cast = (job.context && job.context.cast) || [];
+  const rows = cast.map((c, i) => `
+    <div class="cast-card">
+      <div class="cast-head">${esc(c.name)}
+        <span class="cast-type">${esc(c.type)}${c.auto ? " · авто" : ""}</span></div>
+      <input class="cast-in" data-i="${i}" data-k="name" value="${esc(c.name)}" placeholder="Имя / роль">
+      <input class="cast-in" data-i="${i}" data-k="face" value="${esc(c.face)}" placeholder="Внешность (лицо, волосы)">
+      <input class="cast-in" data-i="${i}" data-k="outfit" value="${esc(c.outfit)}" placeholder="Наряд / фишка">
+      <input class="cast-in" data-i="${i}" data-k="character" value="${esc(c.character || "")}" placeholder="Характер">
+    </div>`).join("");
+  box.innerHTML = `
+    <div class="cast-title">🎭 Кастинг — подтверди персонажей</div>
+    <div class="cast-hint">Героиня — твой бренд-герой (не меняется). Поправь второстепенных
+      или нажми «Пусть решит сам».</div>
+    <div class="cast-grid">${rows}</div>
+    <div class="result-actions">
+      <button class="act primary" id="castSave">✓ Сохранить и продолжить</button>
+      <button class="act" id="castAuto">⚡ Пусть решит сам</button>
+    </div>`;
+  box.classList.remove("hidden");
+
+  $("#castSave").onclick = () => {
+    const draft = JSON.parse(JSON.stringify(cast));
+    box.querySelectorAll(".cast-in").forEach((inp) => {
+      draft[+inp.dataset.i][inp.dataset.k] = inp.value;
+    });
+    submitCast(draft);
+  };
+  $("#castAuto").onclick = () => submitCast(null);
+}
+
+async function submitCast(cast) {
+  const sb = $("#castSave"), au = $("#castAuto");
+  if (sb) sb.disabled = true;
+  if (au) au.disabled = true;
+  try {
+    await fetch(`/api/jobs/${job.id}/cast`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cast }),
+    });
+  } catch (_) {}
+  $("#result").classList.add("hidden");
+  $("#stagesWrap").open = true;
+  poll(job.id);   // возобновляем опрос — конвейер продолжился
 }
 
 // ---------- экран результата ----------
@@ -271,11 +324,13 @@ function renderInspector(idx) {
       const tiles = [];
       if (media.hero) tiles.push(`<div class="tile"><img src="${esc(media.hero)}"></div>`);
       if (media.model_sheet) tiles.push(`<div class="tile"><img src="${esc(media.model_sheet)}"></div>`);
+      (media.chars || []).forEach((c) => tiles.push(`<div class="tile"><img src="${esc(c)}"></div>`));
       html += tiles.length ? `<div class="grid">${tiles.join("")}</div>` : tilePlaceholder(m, 2);
-      const h = (ctx.cast || [])[0];
-      if (h) html += `<div class="scene-row"><div class="scene-role">Паспорт: ${esc(h.name)}</div>
-        <div class="scene-prompt">${esc(h.face)}</div>
-        <div class="scene-prompt">наряд: ${esc(h.outfit)} · голос: ${esc(h.voice_hint)}</div></div>`;
+      (ctx.cast || []).forEach((h) => {
+        html += `<div class="scene-row"><div class="scene-role">${esc(h.name)} · ${esc(h.type)}</div>
+          <div class="scene-prompt">${esc(h.face)}</div>
+          <div class="scene-prompt">наряд: ${esc(h.outfit)} · голос: ${esc(h.voice_hint)}</div></div>`;
+      });
       break;
     }
     case "КАРТИНКИ": {
