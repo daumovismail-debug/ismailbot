@@ -3,38 +3,67 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🏭 СВЕТ — фабрика видео</title>
+  <title>СВЕТ · Студия</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <h1>🏭 СВЕТ</h1>
-      <p class="sub">Фабрика коротких видео — люстры, женщины 30+</p>
-      <span id="mode" class="badge">…</span>
-    </header>
+  <div class="bg-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
 
-    <section class="panel">
-      <label>Тема ролика</label>
-      <input id="theme" list="ideas" placeholder="Выбери из банка или впиши свою…" />
-      <datalist id="ideas"></datalist>
-      <button id="start">▶ Создать ролик</button>
+  <header class="topbar">
+    <div class="brand" id="brandHome">
+      <span class="logo">✦</span>
+      <div>
+        <div class="brand-name">СВЕТ <em>Студия</em></div>
+        <div class="brand-sub">фабрика микро-драм · свет = эмоция</div>
+      </div>
+    </div>
+    <span id="mode" class="badge">…</span>
+  </header>
+
+  <!-- ===== ДОМ: создание + библиотека сериалов ===== -->
+  <main id="home" class="view">
+    <section class="create glass">
+      <h2 class="create-title">Новая серия</h2>
+      <p class="create-hint">Впиши тему-драму — команда AI сама сделает ролик за минуту.</p>
+      <div class="create-row">
+        <input id="theme" list="ideas" placeholder="Напр.: Люстра или развод…" />
+        <datalist id="ideas"></datalist>
+        <button id="start" class="btn-gold">Создать серию ✦</button>
+      </div>
+      <div id="createNote" class="create-note"></div>
     </section>
 
-    <section id="board" class="board hidden">
-      <!-- полоса модулей сверху -->
-      <div id="stepper" class="stepper"></div>
+    <section class="library">
+      <div class="lib-head">
+        <h3>Мои сериалы</h3>
+        <span id="libCount" class="lib-count"></span>
+      </div>
+      <div id="libGrid" class="lib-grid"></div>
+      <div id="libEmpty" class="lib-empty hidden">Пока пусто — создай первую серию ↑</div>
+    </section>
+  </main>
 
-      <!-- общий прогресс -->
+  <!-- ===== СТУДИЯ: производство одной серии ===== -->
+  <main id="board" class="view hidden">
+    <button id="back" class="back">← К сериалам</button>
+    <h2 id="boardTitle" class="board-title"></h2>
+
+    <!-- экран результата (когда готово) -->
+    <section id="result" class="result glass hidden"></section>
+
+    <!-- анимированный таймлайн 12 стадий -->
+    <details id="stagesWrap" class="stages" open>
+      <summary>Этапы производства</summary>
+      <div id="stepper" class="stepper"></div>
       <div class="progress-wrap">
         <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
         <div id="progressText" class="progress-text"></div>
       </div>
-
-      <!-- содержимое выбранного модуля -->
       <div id="inspector" class="inspector"></div>
-    </section>
-  </div>
+    </details>
+  </main>
+
   <script src="/app.js"></script>
 </body>
 </html>

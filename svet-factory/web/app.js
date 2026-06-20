@@ -14,21 +14,35 @@ function esc(v) {
 let timer = null;
 let job = null;          // последний статус задачи
 let selected = null;     // вручную выбранный модуль (индекс) или null = авто
+let resultShown = false; // результат уже свернул таймлайн?
 
+// ---------- маршрутизация между экранами ----------
+function showHome() {
+  clearInterval(timer);
+  $("#board").classList.add("hidden");
+  $("#home").classList.remove("hidden");
+  loadLibrary();
+}
+function showBoard() {
+  $("#home").classList.add("hidden");
+  $("#board").classList.remove("hidden");
+}
+
+// ---------- инициализация ----------
 async function init() {
   try {
     const st = await (await fetch("/api/status")).json();
     const badge = $("#mode");
     if (st.mode === "real") {
       const on = [];
-      if (st.openclaw) on.push("OpenClaw (подписка)");
+      if (st.openclaw) on.push("OpenClaw");
       if (st.openai) on.push("ChatGPT API");
-      if (st.xai) on.push("Grok API");
+      if (st.xai) on.push("Grok");
       if (st.elevenlabs) on.push("ElevenLabs");
-      badge.textContent = "● реальный режим: " + on.join(" + ");
+      badge.textContent = "● реальный режим · " + on.join(" + ");
       badge.className = "badge real";
     } else {
-      badge.textContent = "● демо-режим (нет генераторов)";
+      badge.textContent = "● демо-режим";
       badge.className = "badge demo";
     }
   } catch (_) {}
@@ -42,13 +56,46 @@ async function init() {
       dl.appendChild(o);
     });
   } catch (_) {}
+
+  $("#start").addEventListener("click", start);
+  $("#back").addEventListener("click", showHome);
+  $("#brandHome").addEventListener("click", showHome);
+  loadLibrary();
 }
 
+// ---------- библиотека сериалов ----------
+async function loadLibrary() {
+  let jobs = [];
+  try {
+    const r = await fetch("/api/jobs");
+    if (r.ok) jobs = await r.json();
+  } catch (_) {}
+  const grid = $("#libGrid");
+  grid.innerHTML = "";
+  $("#libCount").textContent = jobs.length ? `${jobs.length}` : "";
+  $("#libEmpty").classList.toggle("hidden", jobs.length > 0);
+  const label = { done: "готово", running: "в работе", error: "ошибка", queued: "в очереди" };
+  jobs.forEach((j, i) => {
+    const m = j.media || {};
+    const thumb = m.hero ? `<img src="${esc(m.hero)}">` : `<div class="ph">✦</div>`;
+    const el = document.createElement("div");
+    el.className = "card";
+    el.style.animationDelay = (i * 0.04) + "s";
+    el.innerHTML = `<div class="card-thumb">${thumb}</div>
+      <div class="card-body">
+        <div class="card-theme">${esc(j.theme || "Без темы")}</div>
+        <span class="chip ${esc(j.status)}">${label[j.status] || esc(j.status)}</span>
+      </div>`;
+    el.onclick = () => openJob(j.id);
+    grid.appendChild(el);
+  });
+}
+
+// ---------- создание / открытие серии ----------
 async function start() {
-  $("#start").disabled = true;
-  $("#board").classList.remove("hidden");
-  selected = null;
   const theme = $("#theme").value.trim();
+  $("#start").disabled = true;
+  $("#createNote").textContent = "";
   try {
     const res = await fetch("/api/jobs", {
       method: "POST",
@@ -56,19 +103,35 @@ async function start() {
       body: JSON.stringify({ theme }),
     });
     if (!res.ok) {
-      const msg = res.status === 429
-        ? "Сервер занят (слишком много задач). Попробуй чуть позже."
-        : `Не удалось запустить (HTTP ${res.status}).`;
-      $("#progressText").textContent = "⚠️ " + msg;
+      $("#createNote").textContent = res.status === 429
+        ? "⚠️ Сервер занят — попробуй чуть позже."
+        : `⚠️ Не удалось запустить (HTTP ${res.status}).`;
       $("#start").disabled = false;
       return;
     }
     const { id } = await res.json();
-    poll(id);
+    $("#theme").value = "";
+    $("#start").disabled = false;
+    openJob(id);
   } catch (_) {
-    $("#progressText").textContent = "⚠️ Сеть недоступна. Проверь соединение.";
+    $("#createNote").textContent = "⚠️ Сеть недоступна.";
     $("#start").disabled = false;
   }
+}
+
+function openJob(id) {
+  selected = null;
+  job = null;
+  resultShown = false;
+  $("#result").classList.add("hidden");
+  $("#stagesWrap").open = true;
+  $("#boardTitle").textContent = "Загрузка…";
+  $("#inspector").innerHTML = "";
+  $("#stepper").innerHTML = "";
+  $("#progressFill").style.width = "0%";
+  $("#progressText").textContent = "";
+  showBoard();
+  poll(id);
 }
 
 function poll(id) {
@@ -81,19 +144,14 @@ function poll(id) {
       job = await res.json();
       fails = 0;
     } catch (_) {
-      // после нескольких подряд неудач — прекращаем опрос, не зависаем молча
       if (++fails >= 5) {
         clearInterval(timer);
         $("#progressText").textContent = "⚠️ Потеряна связь с сервером.";
-        $("#start").disabled = false;
       }
       return;
     }
     render();
-    if (job.status === "done" || job.status === "error") {
-      clearInterval(timer);
-      $("#start").disabled = false;
-    }
+    if (job.status === "done" || job.status === "error") clearInterval(timer);
   };
   tick();
   timer = setInterval(tick, 1500);
@@ -102,7 +160,6 @@ function poll(id) {
 function runningIndex() {
   const i = job.modules.findIndex((m) => m.status === "running");
   if (i >= 0) return i;
-  // если ничего не бежит — последний завершённый/ошибочный
   let last = 0;
   job.modules.forEach((m, idx) => {
     if (m.status === "done" || m.status === "error") last = idx;
@@ -112,7 +169,8 @@ function runningIndex() {
 
 function render() {
   if (!job) return;
-  // полоса модулей
+  $("#boardTitle").textContent = job.theme || "Серия";
+
   const stepper = $("#stepper");
   stepper.innerHTML = "";
   const activeIdx = selected != null ? selected : runningIndex();
@@ -125,16 +183,56 @@ function render() {
     stepper.appendChild(el);
   });
 
-  // прогресс
   $("#progressFill").style.width = (job.progress || 0) + "%";
   const cur = job.modules[runningIndex()];
   let txt = "";
-  if (job.status === "done") txt = "✅ Готово! Открой модуль МОНТАЖ — там ролик.";
+  if (job.status === "done") txt = "✅ Готово — ролик ниже.";
   else if (job.status === "error") txt = "⚠️ " + (job.error || "ошибка");
   else txt = `${cur.name}: ${cur.detail || "в работе…"}`;
   $("#progressText").textContent = txt;
 
   renderInspector(activeIdx);
+  renderResult();
+}
+
+// ---------- экран результата ----------
+function renderResult() {
+  const box = $("#result");
+  const media = job.media || {};
+  const ctx = job.context || {};
+  if (!(job.status === "done" && media.video)) {
+    box.classList.add("hidden");
+    return;
+  }
+  const p = ctx.publish || {};
+  const r = ctx.review || {};
+  let html = `<video controls playsinline src="${esc(media.video)}"></video>
+    <div class="result-actions">
+      <a class="act primary" href="${esc(media.video)}" download>⬇ Скачать</a>`;
+  if (p.telegram_url)
+    html += `<a class="act tg" href="${esc(p.telegram_url)}" target="_blank" rel="noopener">✈ В Telegram</a>`;
+  if (p.caption)
+    html += `<button class="act" id="copyCap">⧉ Копировать подпись</button>`;
+  html += `</div>`;
+  if (r.vibe_score != null) {
+    const ok = r.accepted;
+    html += `<div class="verdict">Приёмка Режиссёра:
+      <b class="${ok ? "ok" : "no"}">${ok ? "✅ принято" : "⚠️ на доработку"}</b>
+      · вайб ${esc(r.vibe_score)}/100</div>`;
+  }
+  if (p.caption)
+    html += `<div class="result-caption">${esc(p.caption)}<br>${esc((p.hashtags || []).join(" "))}</div>`;
+  box.innerHTML = html;
+  box.classList.remove("hidden");
+
+  const cb = $("#copyCap");
+  if (cb) cb.onclick = () => {
+    const text = (p.caption || "") + "\n" + (p.hashtags || []).join(" ");
+    if (navigator.clipboard) navigator.clipboard.writeText(text);
+    cb.textContent = "✓ Скопировано";
+    setTimeout(() => { cb.textContent = "⧉ Копировать подпись"; }, 1500);
+  };
+  if (!resultShown) { $("#stagesWrap").open = false; resultShown = true; }
 }
 
 function renderInspector(idx) {
@@ -244,8 +342,8 @@ function renderInspector(idx) {
     }
     case "МОНТАЖ":
       if (media.video) {
-        html += `<video class="player" controls playsinline src="${esc(media.video)}"></video>
-                 <a class="dl" href="${esc(media.video)}" download>⬇ Скачать ролик</a>`;
+        html += `<video class="tile-video" controls playsinline src="${esc(media.video)}" style="width:100%;border-radius:14px;background:#000"></video>
+                 <a class="act primary" style="display:inline-block;margin-top:12px" href="${esc(media.video)}" download>⬇ Скачать ролик</a>`;
       } else html += note(m);
       break;
     default:
@@ -268,5 +366,4 @@ function tilePlaceholder(m, n) {
   return `<div class="grid">${t}</div>`;
 }
 
-$("#start").addEventListener("click", start);
 init();
