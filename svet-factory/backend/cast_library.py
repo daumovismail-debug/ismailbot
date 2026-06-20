@@ -68,6 +68,27 @@ def detect(scenes: list) -> list[dict]:
     return cast
 
 
+def present_ids(text: str, cast: list) -> list[str]:
+    """Какие персонажи касты появляются в этом кадре (по ключевым словам)."""
+    t = (text or "").lower()
+    ids = []
+    for c in cast:
+        cid = c.get("id")
+        if cid == "heroine":
+            continue
+        if any(w in t for w in _KEYS.get(cid, [])):
+            ids.append(cid)
+    return ids
+
+
+def short_desc(c: dict) -> str:
+    """Короткое описание персонажа для подмешивания в image_prompt (лок облика)."""
+    kind = "cat" if c.get("type") == "cat" else "person"
+    return (f"{c.get('name','')} ({kind}: {c.get('face','')}, "
+            f"{c.get('outfit','')}, {c.get('signature','')})")
+
+
+
 def passport_prompt(p: dict, hero_passport: str) -> str:
     """Промпт-эталон персонажа из его паспорта (героиня — канон, остальные — по полям)."""
     if p.get("id") == "heroine":

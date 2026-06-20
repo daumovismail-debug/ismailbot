@@ -4,7 +4,7 @@
 На каждый кадр: image_prompt (Style Bible + действие + свет-enum) и motion_prompt.
 Без LLM — надёжный шаблон на основе Style Bible и канонной карты света.
 """
-from .. import agent_runner
+from .. import agent_runner, cast_library
 
 # Style Bible (канон из project-bible.md / artist.md) — в каждый промпт без изменений.
 STYLE_BIBLE = (
@@ -39,17 +39,24 @@ _MOTION = {
 }
 
 
-def _template(scene: dict) -> dict:
+def _template(scene: dict, extra_chars: list[dict]) -> dict:
     light = LIGHT_MAP.get(scene.get("light", ""), "warm cinematic light")
     beat = scene.get("beat", "")
+    # лок второстепенных: подмешиваем их облик в промпт (чтобы были одинаковыми)
+    extra = ""
+    if extra_chars:
+        extra = " Also in frame (keep identical): " + \
+                "; ".join(cast_library.short_desc(c) for c in extra_chars) + "."
     return {
-        "image_prompt": f"{STYLE_BIBLE} {light}. Scene: {beat}. vertical 9:16.",
+        "image_prompt": f"{STYLE_BIBLE} {light}. Scene: {beat}.{extra} vertical 9:16.",
         "motion_prompt": _MOTION.get(scene.get("role", ""), "smooth cinematic camera motion"),
     }
 
 
 def run(job, ctx: dict) -> str:
     scenes = ctx["scenes"]
+    cast = ctx.get("cast", [])
+    by_cid = {c.get("id"): c for c in cast}
 
     # 1) Пытаемся через Художника (LLM по рецепту artist.md)
     shots_brief = "\n".join(
@@ -71,12 +78,22 @@ def run(job, ctx: dict) -> str:
     storyboard = []
     used_llm = bool(by_id)
     for s in scenes:
+        # кто в кадре: героиня (бренд-лид) + найденные второстепенные
+        text = f'{s.get("voice","")} {s.get("voice_ru","")} {s.get("beat","")}'
+        present = cast_library.present_ids(text, cast)
+        refs = ["heroine"] + present
+        extra_chars = [by_cid[i] for i in present if i in by_cid]
+
         item = by_id.get(s["id"])
+        t = _template(s, extra_chars)
         if item and item.get("image_prompt"):
             img_p = item["image_prompt"]
-            mot_p = item.get("motion_prompt") or _template(s)["motion_prompt"]
+            # подмешиваем лок второстепенных и к промпту от LLM
+            if extra_chars:
+                img_p += " In frame (keep identical): " + \
+                         "; ".join(cast_library.short_desc(by_cid[i]) for i in present) + "."
+            mot_p = item.get("motion_prompt") or t["motion_prompt"]
         else:
-            t = _template(s)
             img_p, mot_p = t["image_prompt"], t["motion_prompt"]
         storyboard.append({
             "id": s["id"],
@@ -84,7 +101,7 @@ def run(job, ctx: dict) -> str:
             "voice": s.get("voice", ""),       # станет субтитром
             "image_prompt": img_p,
             "motion_prompt": mot_p,
-            "references": ["heroine"],          # лок лица (SCHEMA)
+            "references": refs,                 # лок лиц (SCHEMA): кто в кадре
         })
 
     ctx["storyboard"] = storyboard

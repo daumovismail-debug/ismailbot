@@ -316,6 +316,7 @@ function renderInspector(idx) {
       if (ctx.storyboard) {
         html += ctx.storyboard.map((s) =>
           `<div class="scene-row"><div class="scene-role">${esc(s.role)}</div>
+           ${(s.references || []).length ? `<div class="scene-prompt">👥 в кадре: ${esc((s.references || []).join(", "))}</div>` : ""}
            <div class="scene-prompt">🎨 ${esc(s.image_prompt)}</div>
            <div class="scene-prompt">🎬 ${esc(s.motion_prompt)}</div></div>`).join("");
       } else html += note(m);
