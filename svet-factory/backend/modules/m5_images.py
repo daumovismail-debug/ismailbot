@@ -45,6 +45,7 @@ def run(job, ctx: dict) -> str:
             continue
 
         best = None
+        best_score = -1.0
         for attempt in range(1, MAX_TRIES + 1):
             if progress:
                 progress(f"рисую кадр {i + 1}/{len(storyboard)}"
@@ -53,14 +54,24 @@ def run(job, ctx: dict) -> str:
             if not img:
                 break
             engine = eng
-            p.write_bytes(img)
-            best = str(p)
             if not can_check:
+                p.write_bytes(img)
+                best = str(p)
                 break  # нет vision — принимаем первый удачный
-            fm = openclaw_cli.compare_faces(hero, str(p))
+            # есть vision: сверяем во временный файл, оставляем кадр с ЛУЧШИМ лицом
+            tmp = workdir / f"scene_{i}.try{attempt}.png"
+            tmp.write_bytes(img)
+            fm = openclaw_cli.compare_faces(hero, str(tmp))
+            score = 1.0 if fm is None else fm   # сверка не сработала — не штрафуем
+            if score > best_score:
+                best_score = score
+                tmp.replace(p)                 # лучший пока — в scene_{i}.png
+                best = str(p)
+            else:
+                tmp.unlink(missing_ok=True)
             if fm is None or fm >= FACE_MIN:
-                break  # лицо ок (или сверка не сработала)
-            retries_total += 1  # лицо «уплыло» — пробуем ещё
+                break  # лицо ок (или сверка недоступна)
+            retries_total += 1                 # лицо «уплыло» — пробуем ещё
 
         image_paths.append(best)
         if best:

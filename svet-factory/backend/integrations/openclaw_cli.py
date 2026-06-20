@@ -133,7 +133,7 @@ def compare_faces(ref_path: str, img_path: str, timeout: int = 120) -> float | N
     out = _run_agent(msg, timeout, session_key=None)
     if not out:
         return None
-    m = re.search(r'"face_match"\s*:\s*([01](?:\.\d+)?)', out)
+    m = re.search(r'"face_match"\s*:\s*([01](?:\.\d+)?|\.\d+)', out)
     return float(m.group(1)) if m else None
 
 

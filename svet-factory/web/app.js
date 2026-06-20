@@ -169,11 +169,17 @@ function renderInspector(idx) {
            <div class="scene-prompt">🎬 ${esc(s.motion_prompt)}</div></div>`).join("");
       } else html += note(m);
       break;
-    case "ГЕРОЙ":
-      html += media.hero
-        ? `<div class="grid"><div class="tile"><img src="${esc(media.hero)}"></div></div>`
-        : tilePlaceholder(m, 1);
+    case "ГЕРОЙ": {
+      const tiles = [];
+      if (media.hero) tiles.push(`<div class="tile"><img src="${esc(media.hero)}"></div>`);
+      if (media.model_sheet) tiles.push(`<div class="tile"><img src="${esc(media.model_sheet)}"></div>`);
+      html += tiles.length ? `<div class="grid">${tiles.join("")}</div>` : tilePlaceholder(m, 2);
+      const h = (ctx.cast || [])[0];
+      if (h) html += `<div class="scene-row"><div class="scene-role">Паспорт: ${esc(h.name)}</div>
+        <div class="scene-prompt">${esc(h.face)}</div>
+        <div class="scene-prompt">наряд: ${esc(h.outfit)} · голос: ${esc(h.voice_hint)}</div></div>`;
       break;
+    }
     case "КАРТИНКИ": {
       const total = (ctx.scenes && ctx.scenes.length) || 5;
       const imgs = media.scenes || [];
@@ -202,6 +208,17 @@ function renderInspector(idx) {
       const qc = ctx.qc;
       html += `<div class="note">${esc(m.detail) || esc(noteText(m))}</div>`;
       if (qc) html += `<div class="note">Кадры: ${esc(qc.frames_ok)}/${esc(qc.frames_total)}${qc.demo ? " (демо-плейсхолдеры)" : ""}${(qc.issues||[]).length ? " · ⚠️ " + esc(qc.issues.join(", ")) : " · ✅"}</div>`;
+      break;
+    }
+    case "ПРИЁМКА": {
+      const r = ctx.review;
+      if (r) {
+        const mark = r.accepted ? "✅ принято" : "⚠️ на доработку";
+        html += `<div class="scene-row"><div class="scene-role">Вайб-приёмка Режиссёра</div>
+          <div class="scene-voice">${mark} — ${esc(r.vibe_score)}/100</div></div>`;
+        if ((r.notes || []).length)
+          html += `<div class="note">Замечания: ${esc((r.notes || []).join("; "))}</div>`;
+      } else html += note(m);
       break;
     }
     case "АНАЛИТИК": {

@@ -15,6 +15,7 @@ from .modules import (
     m7_voice,
     m8_assemble,
     m9_control,
+    m12_review,
     m11_analyst,
     m10_publish,
 )
@@ -30,6 +31,7 @@ MODULES = [
     m7_voice,
     m8_assemble,
     m9_control,
+    m12_review,
     m11_analyst,
     m10_publish,
 ]

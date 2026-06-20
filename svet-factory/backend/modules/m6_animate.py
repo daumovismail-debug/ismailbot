@@ -21,6 +21,10 @@ def run(job, ctx: dict) -> str:
     video_paths: list[str | None] = []
     real = 0
     engine = "демо"
+    # базовая длина кадра — та же, что использует Монтаж (чтобы Grok-клип совпал, фикс #6)
+    n = max(1, len(storyboard))
+    base_secs = max(3, min(config.SCENE_SECONDS, round(58 / n)))
+    ctx["scene_secs"] = base_secs
     # общий бюджет времени на анимацию всей серии: чтобы один зависший движок
     # не держал задачу час (как было раньше). Превысили — остаток уходит на
     # Ken Burns, серия всё равно соберётся.
@@ -47,7 +51,8 @@ def run(job, ctx: dict) -> str:
         # 2) запасной путь — Grok API по публичному URL кадра
         if not clip and img_path and media_base and not out_of_time:
             url = f"{media_base}/{Path(img_path).name}"
-            clip = xai.generate_video(shot["motion_prompt"], image_url=url)
+            clip = xai.generate_video(shot["motion_prompt"], image_url=url,
+                                      seconds=base_secs)
             if clip:
                 engine = "Grok API"
 

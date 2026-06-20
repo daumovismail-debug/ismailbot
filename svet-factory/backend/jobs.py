@@ -16,12 +16,12 @@ STATE_DIR.mkdir(parents=True, exist_ok=True)
 # Названия модулей конвейера (должно совпадать с pipeline.MODULES по длине/порядку)
 MODULE_NAMES = [
     "ИДЕЯ", "СЦЕНАРИЙ", "РАСКАДРОВКА", "ГЕРОЙ", "КАРТИНКИ", "АНИМАЦИЯ",
-    "ЗВУК", "МОНТАЖ", "КОНТРОЛЬ", "АНАЛИТИК", "ПУБЛИКАЦИЯ",
+    "ЗВУК", "МОНТАЖ", "КОНТРОЛЬ", "ПРИЁМКА", "АНАЛИТИК", "ПУБЛИКАЦИЯ",
 ]
 
 # поля контекста, которые безопасно отдавать наружу / сохранять
-_SAFE_CTX_KEYS = ("idea", "brief", "scenes", "storyboard", "voice_plan",
-                  "qc", "forecast", "publish", "edl")
+_SAFE_CTX_KEYS = ("idea", "brief", "cast", "scenes", "storyboard", "voice_plan",
+                  "qc", "review", "forecast", "publish", "edl")
 
 
 @dataclass
@@ -69,14 +69,25 @@ class Job:
         """Ссылки на сгенерированные кадры/клипы (для превью)."""
         folder = config.OUTPUT_DIR / self.id
         base = f"/media/{self.id}"
-        media: dict[str, Any] = {"hero": None, "scenes": [], "clips": []}
+        media: dict[str, Any] = {"hero": None, "model_sheet": None,
+                                 "scenes": [], "clips": []}
+
+        def _num(p: Path) -> int:
+            # числовая сортировка: scene_2 < scene_10 (а не лексикографическая)
+            try:
+                return int(p.stem.split("_")[-1])
+            except ValueError:
+                return 0
+
         if folder.is_dir():
             if (folder / "hero.png").exists():
                 media["hero"] = f"{base}/hero.png"
+            if (folder / "model_sheet.png").exists():
+                media["model_sheet"] = f"{base}/model_sheet.png"
             media["scenes"] = [f"{base}/{p.name}" for p in
-                               sorted(folder.glob("scene_*.png"))]
+                               sorted(folder.glob("scene_*.png"), key=_num)]
             media["clips"] = [f"{base}/{p.name}" for p in
-                              sorted(folder.glob("clip_*.mp4"))]
+                              sorted(folder.glob("clip_*.mp4"), key=_num)]
         media["video"] = f"/api/jobs/{self.id}/video" if self.video_path else None
         return media
 

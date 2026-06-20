@@ -14,10 +14,10 @@ BRIEF_KEYS = ("idea", "tone", "hero", "core_conflict", "hook_type",
 
 def _demo_brief(idea: dict) -> dict:
     return {
-        "idea": idea["theme"],
+        "idea": idea.get("theme", ""),
         "tone": "высокая драма, тревога",
         "hero": "heroine",
-        "core_conflict": idea.get("message", idea["theme"]),
+        "core_conflict": idea.get("message", idea.get("theme", "")),
         "hook_type": "ультиматум",
         "target_emotion": "сопереживание + жажда продолжения",
         "visual_mood": "тёплый дом vs холодный свет ссоры",
@@ -33,7 +33,7 @@ def _merge(data: dict, idea: dict) -> dict:
             v = data.get(k)
             if isinstance(v, str) and v.strip():
                 brief[k] = v.strip()
-    brief["idea"] = idea["theme"]  # тему подменить не даём
+    brief["idea"] = idea.get("theme", "")  # тему подменить не даём
     return brief
 
 
