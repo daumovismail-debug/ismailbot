@@ -322,10 +322,12 @@ function renderInspector(idx) {
       break;
     case "ГЕРОЙ": {
       const tiles = [];
-      if (media.hero) tiles.push(`<div class="tile"><img src="${esc(media.hero)}"></div>`);
-      if (media.model_sheet) tiles.push(`<div class="tile"><img src="${esc(media.model_sheet)}"></div>`);
-      (media.chars || []).forEach((c) => tiles.push(`<div class="tile"><img src="${esc(c)}"></div>`));
-      html += tiles.length ? `<div class="grid">${tiles.join("")}</div>` : tilePlaceholder(m, 2);
+      if (media.hero) tiles.push(`<div class="tile"><img src="${esc(media.hero)}" onerror="this.parentElement.classList.add('broken')"></div>`);
+      if (media.model_sheet) tiles.push(`<div class="tile"><img src="${esc(media.model_sheet)}" onerror="this.parentElement.classList.add('broken')"></div>`);
+      (media.chars || []).forEach((c) => tiles.push(`<div class="tile"><img src="${esc(c)}" onerror="this.parentElement.classList.add('broken')"></div>`));
+      if (tiles.length) html += `<div class="grid">${tiles.join("")}</div>`;
+      else if (m.status === "done") html += `<div class="note">⚠️ Эталон не отрисовался. В реальном режиме это значит, что генератор не вернул картинку — проверь логи OpenClaw на сервере.</div>`;
+      else html += tilePlaceholder(m, 2);
       (ctx.cast || []).forEach((h) => {
         html += `<div class="scene-row"><div class="scene-role">${esc(h.name)} · ${esc(h.type)}</div>
           <div class="scene-prompt">${esc(h.face)}</div>
