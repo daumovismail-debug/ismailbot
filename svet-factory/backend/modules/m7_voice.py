@@ -1,32 +1,47 @@
 """МОДУЛЬ 7 — ЗВУК / ГОЛОС (по voice.md).
 
-Строит план озвучки: реплика на казахском (voice_kz) на каждый кадр + голос
-персонажа (voice_id) + музыка (1 трек на серию). Если есть ключ ElevenLabs —
-синтезирует; иначе план записан, аудио добавим, когда подключим казахский движок.
+Озвучивает реплики на КАЗАХСКОМ бесплатно через edge-tts (нейроголоса Microsoft
+Edge). Запасной путь — ElevenLabs (если есть ключ). Сохраняет mp3 на кадр и кладёт
+тайминги слов в storyboard — для точного karaoke-синхрона субтитров в монтаже.
 """
 from pathlib import Path
 
-from ..integrations import elevenlabs
+from ..integrations import edge_voice, elevenlabs
 
 
 def run(job, ctx: dict) -> str:
     workdir: Path = ctx["workdir"]
     scenes = ctx.get("scenes", [])
+    storyboard = ctx.get("storyboard", [])
 
     plan = []
     voice_paths: list[str | None] = []
     real = 0
+    engine = "—"
     for i, s in enumerate(scenes):
-        line_kz = s.get("voice_kz") or ""        # казахский (если Сценарист дал)
+        line_kz = s.get("voice_kz") or ""          # казахский (озвучиваем его)
         line = line_kz or s.get("voice", "")
         plan.append({"id": s.get("id", i + 1), "voice_kz": line_kz,
                      "voice_ru": s.get("voice_ru", "")})
-        audio = elevenlabs.tts(line) if line else None
+
+        audio, words = (None, None)
+        if line:
+            audio, words = edge_voice.tts(line)    # казахский бесплатно
+            if audio:
+                engine = "edge-tts (KZ)"
+            else:
+                audio = elevenlabs.tts(line)        # запасной (если ключ)
+                if audio:
+                    engine = "ElevenLabs"
+
         if audio:
             p = workdir / f"voice_{i}.mp3"
             p.write_bytes(audio)
             voice_paths.append(str(p))
             real += 1
+            # реальные тайминги слов -> точный karaoke-синхрон в монтаже
+            if words and i < len(storyboard):
+                storyboard[i]["word_timings"] = words
         else:
             voice_paths.append(None)
 
@@ -36,6 +51,7 @@ def run(job, ctx: dict) -> str:
 
     have_kz = any(p["voice_kz"] for p in plan)
     if real:
-        return f"Озвучено реплик: {real}/{len(scenes)} (ElevenLabs)"
+        return (f"Озвучено реплик: {real}/{len(scenes)} ({engine}); "
+                "karaoke-тайминги по словам есть")
     note = "план озвучки готов (казахский)" if have_kz else "план озвучки готов"
-    return f"Звук: {note}; аудио — когда подключим казахский движок (демо: без звука)"
+    return f"Звук: {note}; аудио — нет голосового движка (демо: без звука)"

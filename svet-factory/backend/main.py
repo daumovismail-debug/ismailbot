@@ -36,6 +36,7 @@ def status():
         "pollinations": config.HAS_POLLINATIONS,  # бесплатные КАРТИНКИ
         "openai": config.HAS_OPENAI,            # ChatGPT API (запасной)
         "xai": config.HAS_XAI,                  # Grok API (видео)
+        "voice": config.HAS_VOICE,              # казахский голос (edge-tts, бесплатно)
         "elevenlabs": config.HAS_ELEVENLABS,
         "mode": "real" if real else "demo",
     }

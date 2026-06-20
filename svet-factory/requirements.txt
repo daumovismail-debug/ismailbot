@@ -3,3 +3,4 @@ uvicorn>=0.29
 requests>=2.31
 imageio-ffmpeg>=0.5
 Pillow>=10.0
+edge-tts>=6.1

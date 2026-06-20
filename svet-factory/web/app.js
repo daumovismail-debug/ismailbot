@@ -37,9 +37,9 @@ async function init() {
       const on = [];
       if (st.openclaw) on.push("ChatGPT (текст)");
       if (st.pollinations) on.push("Pollinations (картинки)");
+      if (st.voice) on.push("Голос KZ");
       if (st.openai) on.push("OpenAI");
       if (st.xai) on.push("Grok");
-      if (st.elevenlabs) on.push("ElevenLabs");
       badge.textContent = "● реальный режим · " + on.join(" + ");
       badge.className = "badge real";
     } else {
