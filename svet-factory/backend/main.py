@@ -29,11 +29,13 @@ class CastUpdate(BaseModel):
 @app.get("/api/status")
 def status():
     """Какие интеграции подключены (режим демо или реальный)."""
-    real = config.HAS_OPENCLAW or config.HAS_OPENAI or config.HAS_XAI
+    real = (config.HAS_OPENCLAW or config.HAS_OPENAI or config.HAS_XAI
+            or config.HAS_POLLINATIONS)
     return {
-        "openclaw": config.HAS_OPENCLAW,  # подписка ChatGPT/Grok через локальный CLI
-        "openai": config.HAS_OPENAI,      # ChatGPT API (запасной)
-        "xai": config.HAS_XAI,            # Grok API (запасной)
+        "openclaw": config.HAS_OPENCLAW,        # подписка ChatGPT (ТЕКСТ)
+        "pollinations": config.HAS_POLLINATIONS,  # бесплатные КАРТИНКИ
+        "openai": config.HAS_OPENAI,            # ChatGPT API (запасной)
+        "xai": config.HAS_XAI,                  # Grok API (видео)
         "elevenlabs": config.HAS_ELEVENLABS,
         "mode": "real" if real else "demo",
     }

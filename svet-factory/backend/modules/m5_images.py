@@ -6,19 +6,23 @@
 """
 from pathlib import Path
 
-from ..integrations import openai_api, openclaw_cli
+from ..integrations import openai_api, openclaw_cli, pollinations
 
 FACE_MIN = 0.60
 MAX_TRIES = 3
 
 
 def _gen(prompt: str, session_key: str):
-    img = openclaw_cli.generate_image(prompt, session_key=session_key)
+    # Pollinations — основной «художник» (бесплатно, без ключей)
+    img = pollinations.generate_image(prompt)
     if img:
-        return img, "OpenClaw"
+        return img, "Pollinations"
     img = openai_api.generate_image(prompt)
     if img:
         return img, "OpenAI"
+    img = openclaw_cli.generate_image(prompt, session_key=session_key)
+    if img:
+        return img, "OpenClaw"
     return None, "демо"
 
 

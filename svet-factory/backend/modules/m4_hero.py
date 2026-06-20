@@ -10,7 +10,7 @@
 from pathlib import Path
 
 from .. import cast_library, config, ffmpeg_tool, idea_bank
-from ..integrations import openai_api, openclaw_cli
+from ..integrations import openai_api, openclaw_cli, pollinations
 
 # постоянный кэш ассетов касты (вне output/, не раздаётся через /media)
 CAST_DIR = config.BASE_DIR / "cast"
@@ -26,10 +26,14 @@ MODEL_SHEET_PROMPT = (
 
 
 def _gen(prompt: str, session_key: str) -> bytes | None:
-    img = openclaw_cli.generate_image(prompt, session_key=session_key)
+    # Pollinations — основной «художник» (бесплатно, без ключей)
+    img = pollinations.generate_image(prompt)
     if img:
         return img
-    return openai_api.generate_image(prompt)
+    img = openai_api.generate_image(prompt)
+    if img:
+        return img
+    return openclaw_cli.generate_image(prompt, session_key=session_key)
 
 
 def _asset(cache: Path, dest: Path, prompt: str, session_key: str,

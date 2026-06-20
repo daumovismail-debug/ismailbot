@@ -55,6 +55,12 @@ USE_OPENCLAW = os.getenv("USE_OPENCLAW", "1") != "0" and bool(OPENCLAW_BIN)
 # Поставь USE_OPENCLAW_VIDEO=1, когда подключишь рабочий видео-провайдер (Grok).
 USE_OPENCLAW_VIDEO = os.getenv("USE_OPENCLAW_VIDEO", "0") == "1"
 
+# --- Pollinations.ai (бесплатный генератор картинок, без ключей) ---
+# Основной «художник»: OpenClaw картинки не умеет (только текст), поэтому
+# изображения берём здесь — бесплатно и без регистрации.
+USE_POLLINATIONS = os.getenv("USE_POLLINATIONS", "1") != "0"
+POLLINATIONS_MODEL = os.getenv("POLLINATIONS_MODEL", "flux")
+
 # Путь к бандл-бинарю ffmpeg (системный не требуется)
 FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
 
@@ -64,3 +70,4 @@ HAS_OPENAI = bool(OPENAI_API_KEY)
 HAS_XAI = bool(XAI_API_KEY)
 HAS_ELEVENLABS = bool(ELEVENLABS_API_KEY)
 HAS_TELEGRAM = bool(TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID)
+HAS_POLLINATIONS = USE_POLLINATIONS

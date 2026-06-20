@@ -23,7 +23,7 @@ def run(job, ctx: dict) -> str:
 
     have = sum(1 for p in image_paths if p and Path(p).exists())
     total = len(storyboard)
-    expect_real = config.HAS_OPENCLAW or config.HAS_OPENAI
+    expect_real = config.HAS_POLLINATIONS or config.HAS_OPENAI or config.HAS_OPENCLAW
     issues = []
     if expect_real and have < total:
         issues.append(f"нет картинок: {total - have}/{total}")

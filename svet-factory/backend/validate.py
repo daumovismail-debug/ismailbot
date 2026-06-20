@@ -40,7 +40,7 @@ def validate(stage: str, ctx: dict) -> list[str]:
             w.append("есть кадры без references (лок лица)")
 
     elif stage == "КАРТИНКИ":
-        if config.HAS_OPENCLAW or config.HAS_OPENAI:
+        if config.HAS_POLLINATIONS or config.HAS_OPENAI or config.HAS_OPENCLAW:
             paths = ctx.get("image_paths") or []
             have = sum(1 for p in paths if p and Path(p).exists())
             if have < len(sb):

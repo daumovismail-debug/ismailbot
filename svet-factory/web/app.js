@@ -35,8 +35,9 @@ async function init() {
     const badge = $("#mode");
     if (st.mode === "real") {
       const on = [];
-      if (st.openclaw) on.push("OpenClaw");
-      if (st.openai) on.push("ChatGPT API");
+      if (st.openclaw) on.push("ChatGPT (текст)");
+      if (st.pollinations) on.push("Pollinations (картинки)");
+      if (st.openai) on.push("OpenAI");
       if (st.xai) on.push("Grok");
       if (st.elevenlabs) on.push("ElevenLabs");
       badge.textContent = "● реальный режим · " + on.join(" + ");
