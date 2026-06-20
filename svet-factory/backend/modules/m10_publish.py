@@ -29,8 +29,9 @@ def run(job, ctx: dict) -> str:
         "Верни JSON по своему формату (caption, hashtags, cover, first_comment, post_time, cta)."
     )
     data = agent_runner.run_json("publisher", task, session_key=f"svet-{job.id}")
-    pkg = data if isinstance(data, dict) and data.get("caption") else _demo_package(idea, scenes)
-    source = "Издатель (LLM)" if (isinstance(data, dict) and data.get("caption")) else "демо-шаблон"
+    ok = isinstance(data, dict) and bool(data.get("caption"))
+    pkg = data if ok else _demo_package(idea, scenes)
+    source = "Издатель (LLM)" if ok else "демо-шаблон"
     # выгрузка готового ролика в Telegram-архив (если настроен)
     tg = telegram.send_video(job.video_path, pkg.get("caption", "")) if job.video_path else None
     if tg:

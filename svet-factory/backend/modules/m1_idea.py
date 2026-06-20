@@ -29,7 +29,8 @@ def run(job, ctx: dict) -> str:
         "target_emotion, visual_mood, series_link)."
     )
     data = agent_runner.run_json("director", task, session_key=f"svet-{job.id}")
-    brief = data if isinstance(data, dict) and data.get("tone") else _demo_brief(idea)
+    ok = isinstance(data, dict) and "tone" in data
+    brief = data if ok else _demo_brief(idea)
     ctx["brief"] = brief
-    src = "Режиссёр (LLM)" if (isinstance(data, dict) and data.get("tone")) else "демо-бриф"
+    src = "Режиссёр (LLM)" if ok else "демо-бриф"
     return f"Тема: «{idea['theme']}». Бриф готов ({src}): тон «{brief.get('tone','')}»."

@@ -22,6 +22,23 @@ def _log(msg: str) -> None:
     print(f"[openclaw] {msg}", flush=True)
 
 
+# путь от LLM читаем, только если он внутри разрешённых папок (защита от чтения
+# произвольных файлов вроде /etc/...). OpenClaw кладёт картинки под ~/.openclaw.
+_ALLOWED_ROOTS = [Path.home().resolve(), config.OUTPUT_DIR.resolve(),
+                  Path("/tmp").resolve()]
+
+
+def _safe_file(path: str) -> Path | None:
+    try:
+        p = Path(path).resolve()
+    except Exception:  # noqa: BLE001
+        return None
+    if p.is_file() and any(p.is_relative_to(r) for r in _ALLOWED_ROOTS):
+        return p
+    _log(f"путь вне разрешённых папок, пропуск: {path}")
+    return None
+
+
 def available() -> bool:
     return config.USE_OPENCLAW and bool(config.OPENCLAW_BIN)
 
@@ -130,9 +147,10 @@ def generate_image(prompt: str, session_key: str | None = None,
         ".png file, nothing else."
     )
     path = _extract_path(_run_agent(msg, timeout, session_key), _PNG)
-    if path and Path(path).exists():
-        return Path(path).read_bytes()
-    _log("image: file not found in agent reply")
+    safe = _safe_file(path) if path else None
+    if safe:
+        return safe.read_bytes()
+    _log("image: file not found / unsafe path in agent reply")
     return None
 
 
@@ -152,7 +170,8 @@ def generate_video(prompt: str, image_path: str | None = None,
             "Reply with ONLY the absolute file path to the saved video file, nothing else."
         )
     path = _extract_path(_run_agent(msg, timeout, session_key), _VID)
-    if path and Path(path).exists():
-        return Path(path).read_bytes()
-    _log("video: file not found in agent reply")
+    safe = _safe_file(path) if path else None
+    if safe:
+        return safe.read_bytes()
+    _log("video: file not found / unsafe path in agent reply")
     return None

@@ -1,5 +1,16 @@
 const $ = (s) => document.querySelector(s);
 
+// экранируем любой текст от модели/пользователя перед вставкой в innerHTML
+function esc(v) {
+  if (v == null) return "";
+  return String(v)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 let timer = null;
 let job = null;          // последний статус задачи
 let selected = null;     // вручную выбранный модуль (индекс) или null = авто
@@ -38,21 +49,44 @@ async function start() {
   $("#board").classList.remove("hidden");
   selected = null;
   const theme = $("#theme").value.trim();
-  const res = await fetch("/api/jobs", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ theme }),
-  });
-  const { id } = await res.json();
-  poll(id);
+  try {
+    const res = await fetch("/api/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ theme }),
+    });
+    if (!res.ok) {
+      const msg = res.status === 429
+        ? "Сервер занят (слишком много задач). Попробуй чуть позже."
+        : `Не удалось запустить (HTTP ${res.status}).`;
+      $("#progressText").textContent = "⚠️ " + msg;
+      $("#start").disabled = false;
+      return;
+    }
+    const { id } = await res.json();
+    poll(id);
+  } catch (_) {
+    $("#progressText").textContent = "⚠️ Сеть недоступна. Проверь соединение.";
+    $("#start").disabled = false;
+  }
 }
 
 function poll(id) {
   clearInterval(timer);
+  let fails = 0;
   const tick = async () => {
     try {
-      job = await (await fetch(`/api/jobs/${id}`)).json();
+      const res = await fetch(`/api/jobs/${id}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      job = await res.json();
+      fails = 0;
     } catch (_) {
+      // после нескольких подряд неудач — прекращаем опрос, не зависаем молча
+      if (++fails >= 5) {
+        clearInterval(timer);
+        $("#progressText").textContent = "⚠️ Потеряна связь с сервером.";
+        $("#start").disabled = false;
+      }
       return;
     }
     render();
@@ -86,7 +120,7 @@ function render() {
     const el = document.createElement("div");
     el.className = `step ${m.status}${idx === activeIdx ? " active" : ""}`;
     el.innerHTML = `<span class="dot"></span>
-      <span><span class="num">${idx + 1}</span> <span class="label">${m.name}</span></span>`;
+      <span><span class="num">${idx + 1}</span> <span class="label">${esc(m.name)}</span></span>`;
     el.onclick = () => { selected = idx; render(); };
     stepper.appendChild(el);
   });
@@ -108,34 +142,34 @@ function renderInspector(idx) {
   const ctx = job.context || {};
   const media = job.media || {};
   const box = $("#inspector");
-  let html = `<h3>${idx + 1}. ${m.name}</h3>`;
+  let html = `<h3>${idx + 1}. ${esc(m.name)}</h3>`;
 
   switch (m.name) {
     case "ИДЕЯ":
       html += ctx.idea
-        ? `<div class="note"><b>${ctx.idea.theme}</b><br>${ctx.idea.message}</div>`
+        ? `<div class="note"><b>${esc(ctx.idea.theme)}</b><br>${esc(ctx.idea.message)}</div>`
         : note(m);
       if (ctx.brief) html += `<div class="scene-row"><div class="scene-role">Бриф режиссёра</div>
-        <div class="scene-prompt">тон: ${ctx.brief.tone || ""} · конфликт: ${ctx.brief.core_conflict || ""} · эмоция: ${ctx.brief.target_emotion || ""}</div></div>`;
+        <div class="scene-prompt">тон: ${esc(ctx.brief.tone)} · конфликт: ${esc(ctx.brief.core_conflict)} · эмоция: ${esc(ctx.brief.target_emotion)}</div></div>`;
       break;
     case "СЦЕНАРИЙ":
       if (ctx.scenes) {
         html += ctx.scenes.map((s) =>
-          `<div class="scene-row"><div class="scene-role">${s.role}</div>
-           <div class="scene-voice">${s.voice}</div></div>`).join("");
+          `<div class="scene-row"><div class="scene-role">${esc(s.role)}</div>
+           <div class="scene-voice">${esc(s.voice)}</div></div>`).join("");
       } else html += note(m);
       break;
     case "РАСКАДРОВКА":
       if (ctx.storyboard) {
         html += ctx.storyboard.map((s) =>
-          `<div class="scene-row"><div class="scene-role">${s.role}</div>
-           <div class="scene-prompt">🎨 ${s.image_prompt}</div>
-           <div class="scene-prompt">🎬 ${s.motion_prompt}</div></div>`).join("");
+          `<div class="scene-row"><div class="scene-role">${esc(s.role)}</div>
+           <div class="scene-prompt">🎨 ${esc(s.image_prompt)}</div>
+           <div class="scene-prompt">🎬 ${esc(s.motion_prompt)}</div></div>`).join("");
       } else html += note(m);
       break;
     case "ГЕРОЙ":
       html += media.hero
-        ? `<div class="grid"><div class="tile"><img src="${media.hero}"></div></div>`
+        ? `<div class="grid"><div class="tile"><img src="${esc(media.hero)}"></div></div>`
         : tilePlaceholder(m, 1);
       break;
     case "КАРТИНКИ": {
@@ -143,7 +177,7 @@ function renderInspector(idx) {
       const imgs = media.scenes || [];
       html += `<div class="grid">`;
       for (let i = 0; i < total; i++) {
-        if (imgs[i]) html += `<div class="tile"><img src="${imgs[i]}"></div>`;
+        if (imgs[i]) html += `<div class="tile"><img src="${esc(imgs[i])}"></div>`;
         else if (m.status === "running" && i === imgs.length)
           html += `<div class="tile loading"></div>`;
         else html += `<div class="tile empty"></div>`;
@@ -154,45 +188,45 @@ function renderInspector(idx) {
     case "АНИМАЦИЯ":
       if ((media.clips || []).length) {
         html += `<div class="grid">` + media.clips.map((c) =>
-          `<div class="tile"><video src="${c}" muted loop autoplay playsinline></video></div>`).join("") + `</div>`;
+          `<div class="tile"><video src="${esc(c)}" muted loop autoplay playsinline></video></div>`).join("") + `</div>`;
       } else {
-        html += `<div class="note">${m.detail || "Плавный зум (Ken Burns) по кадрам — применится на монтаже."}</div>`;
+        html += `<div class="note">${esc(m.detail) || "Плавный зум (Ken Burns) по кадрам — применится на монтаже."}</div>`;
       }
       break;
     case "ЗВУК":
-      html += `<div class="note">${m.detail || "Озвучка реплик."}</div>`;
+      html += `<div class="note">${esc(m.detail) || "Озвучка реплик."}</div>`;
       break;
     case "КОНТРОЛЬ": {
       const qc = ctx.qc;
-      html += `<div class="note">${m.detail || note(m)}</div>`;
-      if (qc) html += `<div class="note">Кадры: ${qc.frames_ok}/${qc.frames_total}${qc.demo ? " (демо-плейсхолдеры)" : ""}${(qc.issues||[]).length ? " · ⚠️ " + qc.issues.join(", ") : " · ✅"}</div>`;
+      html += `<div class="note">${esc(m.detail) || esc(noteText(m))}</div>`;
+      if (qc) html += `<div class="note">Кадры: ${esc(qc.frames_ok)}/${esc(qc.frames_total)}${qc.demo ? " (демо-плейсхолдеры)" : ""}${(qc.issues||[]).length ? " · ⚠️ " + esc(qc.issues.join(", ")) : " · ✅"}</div>`;
       break;
     }
     case "АНАЛИТИК": {
       const f = ctx.forecast;
       if (f) {
         html += `<div class="scene-row"><div class="scene-role">Прогноз хука</div>
-          <div class="scene-voice">${f.hook_score}/100 — ${f.verdict || ""}</div></div>`;
-        if (f.predicted_intro_retention) html += `<div class="scene-prompt">удержание 3с: ${f.predicted_intro_retention}</div>`;
-        if (f.fixes) html += `<div class="note">Советы: ${(f.fixes||[]).join("; ")}</div>`;
+          <div class="scene-voice">${esc(f.hook_score)}/100 — ${esc(f.verdict)}</div></div>`;
+        if (f.predicted_intro_retention) html += `<div class="scene-prompt">удержание 3с: ${esc(f.predicted_intro_retention)}</div>`;
+        if (f.fixes) html += `<div class="note">Советы: ${esc((f.fixes||[]).join("; "))}</div>`;
       } else html += note(m);
       break;
     }
     case "ПУБЛИКАЦИЯ": {
       const p = ctx.publish;
       if (p) {
-        html += `<div class="scene-row"><div class="scene-role">Подпись</div><div class="scene-voice">${p.caption || ""}</div></div>`;
-        if (p.hashtags) html += `<div class="scene-row"><div class="scene-prompt">${(p.hashtags||[]).join(" ")}</div></div>`;
-        if (p.first_comment) html += `<div class="scene-row"><div class="scene-role">1-й коммент</div><div class="scene-voice">${p.first_comment}</div></div>`;
-        if (p.post_time) html += `<div class="scene-row"><div class="scene-prompt">🕒 ${p.post_time}</div></div>`;
+        html += `<div class="scene-row"><div class="scene-role">Подпись</div><div class="scene-voice">${esc(p.caption)}</div></div>`;
+        if (p.hashtags) html += `<div class="scene-row"><div class="scene-prompt">${esc((p.hashtags||[]).join(" "))}</div></div>`;
+        if (p.first_comment) html += `<div class="scene-row"><div class="scene-role">1-й коммент</div><div class="scene-voice">${esc(p.first_comment)}</div></div>`;
+        if (p.post_time) html += `<div class="scene-row"><div class="scene-prompt">🕒 ${esc(p.post_time)}</div></div>`;
         html += `<div class="note">Постинг — вручную/планировщиком (API соцсетей ограничены).</div>`;
       } else html += note(m);
       break;
     }
     case "МОНТАЖ":
       if (media.video) {
-        html += `<video class="player" controls playsinline src="${media.video}"></video>
-                 <a class="dl" href="${media.video}" download>⬇ Скачать ролик</a>`;
+        html += `<video class="player" controls playsinline src="${esc(media.video)}"></video>
+                 <a class="dl" href="${esc(media.video)}" download>⬇ Скачать ролик</a>`;
       } else html += note(m);
       break;
     default:
@@ -201,9 +235,12 @@ function renderInspector(idx) {
   box.innerHTML = html;
 }
 
-function note(m) {
+function noteText(m) {
   const label = { pending: "ожидает очереди", running: "в работе…", done: "готово", error: "ошибка" }[m.status] || "";
-  return `<div class="note">${m.detail || label}</div>`;
+  return m.detail || label;
+}
+function note(m) {
+  return `<div class="note">${esc(noteText(m))}</div>`;
 }
 function tilePlaceholder(m, n) {
   let t = "";

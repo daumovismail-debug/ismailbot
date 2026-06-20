@@ -38,19 +38,23 @@ def generate_video(prompt: str, image_url: str | None = None,
             timeout=TIMEOUT,
         )
         r.raise_for_status()
-        req_id = r.json().get("request_id") or r.json().get("id")
+        created = r.json()
+        req_id = created.get("request_id") or created.get("id")
         if not req_id:
             _log("no request_id in response")
             return None
 
-        # поллинг готовности
-        for _ in range(60):
+        # поллинг готовности с общим бюджетом времени (не больше ~6 мин)
+        deadline = time.monotonic() + 360
+        while time.monotonic() < deadline:
             time.sleep(6)
-            poll = requests.get(
+            pr = requests.get(
                 f"https://api.x.ai/v1/videos/{req_id}",
                 headers={"Authorization": f"Bearer {config.XAI_API_KEY}"},
                 timeout=TIMEOUT,
-            ).json()
+            )
+            pr.raise_for_status()
+            poll = pr.json()
             status = poll.get("status")
             if status in ("completed", "succeeded", "done") or poll.get("url"):
                 return _download(poll)

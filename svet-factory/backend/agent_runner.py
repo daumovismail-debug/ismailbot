@@ -4,7 +4,6 @@
 OpenClaw (подписка ChatGPT) -> OpenAI API -> None (тогда модуль берёт демо-фоллбэк).
 """
 import json
-import re
 from pathlib import Path
 
 from . import config

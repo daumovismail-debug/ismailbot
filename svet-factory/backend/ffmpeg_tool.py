@@ -20,6 +20,14 @@ FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 W, H = config.VIDEO_WIDTH, config.VIDEO_HEIGHT
 FPS = 30
 
+
+def _font(size: int):
+    """Шрифт DejaVu, а если его нет в системе — встроенный (чтобы не падать)."""
+    try:
+        return ImageFont.truetype(FONT_PATH, size)
+    except OSError:
+        return ImageFont.load_default()
+
 # тёплая палитра под нишу «свет» для демо-клипов
 SCENE_COLORS = ["0x2b1d3a", "0x3a2438", "0x1d2b3a", "0x3a2e1d", "0x2a1d2b"]
 
@@ -33,7 +41,7 @@ def _caption_png(text: str, out_path: Path, title: bool = False) -> None:
     img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     size = 84 if title else 48
-    font = ImageFont.truetype(FONT_PATH, size)
+    font = _font(size)
 
     wrapped = textwrap.fill(text, width=20 if title else 26)
     lines = wrapped.split("\n")
@@ -42,8 +50,9 @@ def _caption_png(text: str, out_path: Path, title: bool = False) -> None:
 
     y0 = H // 2 - block_h // 2 if title else H - block_h - 240
     pad = 36
-    # ширина плашки по самой длинной строке
+    # ширина плашки по самой длинной строке (но не шире кадра)
     max_w = max(draw.textlength(l, font=font) for l in lines)
+    max_w = min(max_w, W - 2 * pad)
     box = [
         (W - max_w) / 2 - pad, y0 - pad,
         (W + max_w) / 2 + pad, y0 + block_h + pad,
@@ -119,6 +128,9 @@ def make_scene_clip(
 
 def concat_clips(clips: list[Path], out_path: Path) -> None:
     """Склейка нормализованных клипов через concat demuxer."""
+    clips = [c for c in clips if c and Path(c).exists()]
+    if not clips:
+        raise RuntimeError("нет клипов для склейки")
     with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as f:
         for c in clips:
             f.write(f"file '{c.resolve()}'\n")
@@ -136,12 +148,10 @@ def concat_clips(clips: list[Path], out_path: Path) -> None:
 
 def make_placeholder_image(out_path: Path, caption: str) -> None:
     """Демо-картинка героя/сцены (когда нет Nano Banana) — рисуется через Pillow."""
-    img = Image.new("RGB", (W, H), (43, 29, 58))
-    overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    img.paste(Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB"))
+    base = Image.new("RGBA", (W, H), (43, 29, 58, 255))
     cap = out_path.with_suffix(".cap.png")
     _caption_png(caption, cap, title=True)
-    base = img.convert("RGBA")
-    base.alpha_composite(Image.open(cap).convert("RGBA"))
+    with Image.open(cap) as overlay:
+        base.alpha_composite(overlay.convert("RGBA"))
     base.convert("RGB").save(out_path)
     cap.unlink(missing_ok=True)

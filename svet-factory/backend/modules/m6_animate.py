@@ -12,7 +12,7 @@ from ..integrations import openclaw_cli, xai
 def run(job, ctx: dict) -> str:
     workdir: Path = ctx["workdir"]
     storyboard = ctx["storyboard"]
-    image_paths = ctx["image_paths"]
+    image_paths = ctx.get("image_paths") or []
     media_base = ctx.get("media_base")
     session_key = f"svet-{job.id}"
 
@@ -24,7 +24,7 @@ def run(job, ctx: dict) -> str:
         if progress:
             progress(f"оживляю кадр {i + 1}/{len(storyboard)}…")
         clip = None
-        img_path = image_paths[i]
+        img_path = image_paths[i] if i < len(image_paths) else None
 
         # 1) OpenClaw — отдаём локальный путь к кадру (только если явно включено,
         #    иначе пропускаем: видео может надолго зависать)

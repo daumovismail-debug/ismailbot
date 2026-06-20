@@ -15,11 +15,14 @@ def run(job, ctx: dict) -> str:
     # длительность кадра подгоняем так, чтобы вся серия укладывалась в 45–60 сек
     n = max(1, len(storyboard))
     secs = max(3, min(config.SCENE_SECONDS, round(58 / n)))
+    def _at(lst, idx):
+        return lst[idx] if idx < len(lst) else None
+
     for i, shot in enumerate(storyboard):
         out = workdir / f"scene_clip_{i}.mp4"
-        v = Path(video_paths[i]) if video_paths[i] else None
-        img = Path(image_paths[i]) if image_paths[i] else None
-        voice = Path(voice_paths[i]) if voice_paths[i] else None
+        v = Path(p) if (p := _at(video_paths, i)) else None
+        img = Path(p) if (p := _at(image_paths, i)) else None
+        voice = Path(p) if (p := _at(voice_paths, i)) else None
         # подпись = реплика (станет субтитром поверх кадра)
         ffmpeg_tool.make_scene_clip(
             out_path=out,

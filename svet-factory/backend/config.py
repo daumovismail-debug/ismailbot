@@ -30,9 +30,16 @@ ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM")
 PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "").strip().rstrip("/")
 
 # --- Параметры ролика ---
-SCENE_SECONDS = int(os.getenv("SCENE_SECONDS", "5"))
-VIDEO_WIDTH = int(os.getenv("VIDEO_WIDTH", "1080"))
-VIDEO_HEIGHT = int(os.getenv("VIDEO_HEIGHT", "1920"))
+def _int_env(name: str, default: int) -> int:
+    try:
+        return int(os.getenv(name, str(default)))
+    except (TypeError, ValueError):
+        return default
+
+
+SCENE_SECONDS = _int_env("SCENE_SECONDS", 5)
+VIDEO_WIDTH = _int_env("VIDEO_WIDTH", 1080)
+VIDEO_HEIGHT = _int_env("VIDEO_HEIGHT", 1920)
 
 # --- OpenClaw (генерация под подпиской ChatGPT/Grok через локальный CLI) ---
 # Если на сервере установлен openclaw — картинки/видео идут через него

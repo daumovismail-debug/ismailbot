@@ -1,8 +1,10 @@
 """FastAPI: REST API конвейера + раздача веб-панели."""
+import os
 import threading
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -11,6 +13,9 @@ from .jobs import store
 from .pipeline import run_pipeline
 
 app = FastAPI(title="СВЕТ — фабрика видео")
+
+# не даём перегрузить слабый сервер десятками параллельных рендеров
+MAX_ACTIVE_JOBS = int(os.getenv("MAX_ACTIVE_JOBS", "2"))
 
 
 class CreateJob(BaseModel):
@@ -37,7 +42,9 @@ def ideas():
 
 @app.post("/api/jobs")
 def create_job(body: CreateJob):
-    job = store.create(body.theme or "")
+    if store.active_count() >= MAX_ACTIVE_JOBS:
+        raise HTTPException(429, f"занято: уже {MAX_ACTIVE_JOBS} активных задач, подожди")
+    job = store.create((body.theme or "").strip()[:200])
     threading.Thread(target=run_pipeline, args=(job,), daemon=True).start()
     return {"id": job.id}
 
@@ -60,7 +67,11 @@ def get_video(job_id: str):
     job = store.get(job_id)
     if not job or not job.video_path:
         raise HTTPException(404, "video not ready")
-    return FileResponse(job.video_path, media_type="video/mp4", filename=f"svet_{job_id}.mp4")
+    # путь должен быть внутри OUTPUT_DIR (защита от выхода за пределы)
+    p = Path(job.video_path).resolve()
+    if not p.is_file() or not p.is_relative_to(config.OUTPUT_DIR.resolve()):
+        raise HTTPException(404, "video not found")
+    return FileResponse(str(p), media_type="video/mp4", filename=f"svet_{job_id}.mp4")
 
 
 # отдаём сгенерированные кадры по публичному URL (нужно Grok'у для image-to-video)

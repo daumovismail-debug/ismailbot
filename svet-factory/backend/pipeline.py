@@ -34,6 +34,11 @@ MODULES = [
     m10_publish,
 ]
 
+# порядок и число модулей должны строго совпадать с jobs.MODULE_NAMES,
+# иначе job.modules[i] и MODULES[i] разъедутся
+from .jobs import MODULE_NAMES  # noqa: E402
+assert len(MODULES) == len(MODULE_NAMES), "MODULES != MODULE_NAMES"
+
 
 def run_pipeline(job: Job) -> None:
     """Запускается в фоновом потоке. Прогоняет задачу по конвейеру."""

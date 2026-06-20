@@ -14,7 +14,7 @@ def validate(stage: str, ctx: dict) -> list[str]:
     sb = ctx.get("storyboard") or []
 
     if stage == "СЦЕНАРИЙ":
-        if not (8 <= len(scenes) <= 14):
+        if not (10 <= len(scenes) <= 14):
             w.append(f"кадров {len(scenes)} (ждём 10–14)")
         ids = [s.get("id") for s in scenes]
         if len(set(ids)) != len(ids) or any(i is None for i in ids):
@@ -38,7 +38,6 @@ def validate(stage: str, ctx: dict) -> list[str]:
                 w.append(f"нарисовано {have}/{len(sb)} кадров")
 
     elif stage == "МОНТАЖ":
-        vp = ctx.get("_video_path_check")
         # видео проверяет КОНТРОЛЬ; здесь — длина по числу кадров
         if len(sb) and ctx.get("_episode_secs", 0) > 60:
             w.append("длина >60 сек")
