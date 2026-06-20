@@ -62,9 +62,16 @@ def _from_llm(data) -> list[dict] | None:
 
 def run(job, ctx: dict) -> str:
     idea = ctx["idea"]
-    data = agent_runner.run_json(
-        "scenarist", TASK_TPL.format(theme=idea["theme"]), session_key=f"svet-{job.id}"
+    brief = ctx.get("brief", {})
+    # бриф Режиссёра — вход Сценариста (единая истина: тон/хук/эмоция/конфликт)
+    task = TASK_TPL.format(theme=idea["theme"]) + (
+        "\n\nБриф Режиссёра (строго следуй ему): "
+        f"тон={brief.get('tone','')}; конфликт={brief.get('core_conflict','')}; "
+        f"тип хука={brief.get('hook_type','')}; "
+        f"эмоция-цель={brief.get('target_emotion','')}; "
+        f"визуал={brief.get('visual_mood','')}."
     )
+    data = agent_runner.run_json("scenarist", task, session_key=f"svet-{job.id}")
     scenes = _from_llm(data)
     if scenes:
         source = "Сценарист (LLM)"
