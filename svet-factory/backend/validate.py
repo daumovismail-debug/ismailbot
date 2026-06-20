@@ -6,6 +6,7 @@
 from pathlib import Path
 
 from . import config
+from .modules.m1_idea import BRIEF_KEYS
 
 
 def validate(stage: str, ctx: dict) -> list[str]:
@@ -13,7 +14,15 @@ def validate(stage: str, ctx: dict) -> list[str]:
     scenes = ctx.get("scenes") or []
     sb = ctx.get("storyboard") or []
 
-    if stage == "СЦЕНАРИЙ":
+    if stage == "ИДЕЯ":
+        if not (ctx.get("idea") or {}).get("theme"):
+            w.append("нет темы")
+        brief = ctx.get("brief") or {}
+        missing = [k for k in BRIEF_KEYS if not str(brief.get(k, "")).strip()]
+        if missing:
+            w.append("бриф без полей: " + ", ".join(missing))
+
+    elif stage == "СЦЕНАРИЙ":
         if not (10 <= len(scenes) <= 14):
             w.append(f"кадров {len(scenes)} (ждём 10–14)")
         ids = [s.get("id") for s in scenes]
