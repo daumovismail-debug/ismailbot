@@ -3,7 +3,7 @@
 Сам НЕ постит (API соцсетей ограничены) — собирает подпись/хэштеги/обложку/время,
 чтобы выложить нативным планировщиком или вручную. Пишется в ctx["publish"].
 """
-from .. import agent_runner
+from .. import agent_runner, cleanup, config
 from ..integrations import telegram
 
 
@@ -32,12 +32,22 @@ def run(job, ctx: dict) -> str:
     ok = isinstance(data, dict) and bool(data.get("caption"))
     pkg = data if ok else _demo_package(idea, scenes)
     source = "Издатель (LLM)" if ok else "демо-шаблон"
-    # выгрузка готового ролика в Telegram-архив (если настроен)
-    tg = telegram.send_video(job.video_path, pkg.get("caption", "")) if job.video_path else None
+    # доставка готового ролика ФАЙЛОМ в Telegram-канал (если настроен) — полное
+    # качество, скачиваешь оригиналом
+    tg = telegram.send_document(job.video_path, pkg.get("caption", "")) if job.video_path else None
+    cleaned = False
     if tg:
         pkg["telegram_url"] = tg
+        # ролик теперь надёжно лежит в твоём Telegram-канале → чистим копию на
+        # сервере, чтобы диск не забивался (его всегда можно скачать из Telegram)
+        if config.AUTO_CLEANUP_AFTER_DOWNLOAD:
+            cleaned = cleanup.cleanup_job_media(job)
 
     ctx["publish"] = pkg
-    tg_note = f" Залит в Telegram: {tg}" if tg else ""
+    if tg:
+        tg_note = f" Отправлен файлом в Telegram: {tg}." + \
+                  (" Копия на сервере удалена (есть в Telegram)." if cleaned else "")
+    else:
+        tg_note = ""
     return (f"Пакет публикации готов ({source}): подпись + хэштеги + обложка + время."
-            f"{tg_note} Постинг — вручную/планировщиком.")
+            f"{tg_note}")

@@ -9,17 +9,16 @@ from .. import config
 TIMEOUT = 180
 
 
-def send_video(path: str, caption: str = "") -> str | None:
-    """Шлёт видео в канал/чат. Возвращает ссылку на сообщение или None."""
+def _send(method: str, field: str, path: str, caption: str) -> str | None:
     if not config.HAS_TELEGRAM:
         return None
-    url = f"https://api.telegram.org/bot{config.TELEGRAM_BOT_TOKEN}/sendVideo"
+    url = f"https://api.telegram.org/bot{config.TELEGRAM_BOT_TOKEN}/{method}"
     try:
         with open(path, "rb") as f:
             r = requests.post(
                 url,
                 data={"chat_id": config.TELEGRAM_CHAT_ID, "caption": caption[:1024]},
-                files={"video": f},
+                files={field: f},
                 timeout=TIMEOUT,
             )
         r.raise_for_status()
@@ -33,3 +32,14 @@ def send_video(path: str, caption: str = "") -> str | None:
     except Exception as e:  # noqa: BLE001
         print(f"[telegram] send error: {e}", flush=True)
         return None
+
+
+def send_document(path: str, caption: str = "") -> str | None:
+    """Шлёт ролик ФАЙЛОМ (документом) — без сжатия, полное качество. Так его
+    можно скачать оригиналом. Возвращает ссылку на сообщение или None."""
+    return _send("sendDocument", "document", path, caption)
+
+
+def send_video(path: str, caption: str = "") -> str | None:
+    """Шлёт видео в канал/чат (плеером, со сжатием). Ссылка или None."""
+    return _send("sendVideo", "video", path, caption)
