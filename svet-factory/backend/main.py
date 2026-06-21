@@ -1,5 +1,6 @@
 """FastAPI: REST API конвейера + раздача веб-панели."""
 import os
+import shutil
 import threading
 from pathlib import Path
 
@@ -7,6 +8,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from starlette.background import BackgroundTask
 
 from . import config, idea_bank
 from .jobs import store
@@ -117,6 +119,17 @@ def get_job(job_id: str):
     return job.public()
 
 
+def _cleanup_job_media(job) -> None:
+    """Удаляет кадры/видео серии с диска после того, как файл отдан клиенту."""
+    folder = (config.OUTPUT_DIR / job.id).resolve()
+    if folder.is_dir() and folder.is_relative_to(config.OUTPUT_DIR.resolve()):
+        shutil.rmtree(folder, ignore_errors=True)
+    job.video_path = None
+    job.context.pop("workdir", None)
+    store.save(job)
+    print(f"[cleanup] медиа серии {job.id} удалены с сервера после скачивания", flush=True)
+
+
 @app.get("/api/jobs/{job_id}/video")
 def get_video(job_id: str):
     job = store.get(job_id)
@@ -126,7 +139,11 @@ def get_video(job_id: str):
     p = Path(job.video_path).resolve()
     if not p.is_file() or not p.is_relative_to(config.OUTPUT_DIR.resolve()):
         raise HTTPException(404, "video not found")
-    return FileResponse(str(p), media_type="video/mp4", filename=f"svet_{job_id}.mp4")
+    # после успешной отдачи файла — чистим кадры/видео с диска (экономим место)
+    task = BackgroundTask(_cleanup_job_media, job) \
+        if config.AUTO_CLEANUP_AFTER_DOWNLOAD else None
+    return FileResponse(str(p), media_type="video/mp4",
+                        filename=f"svet_{job_id}.mp4", background=task)
 
 
 # отдаём сгенерированные кадры по публичному URL (нужно Grok'у для image-to-video)

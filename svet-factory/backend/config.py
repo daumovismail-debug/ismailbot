@@ -10,6 +10,10 @@ WEB_DIR = BASE_DIR / "web"
 OUTPUT_DIR = BASE_DIR / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
+# Удалять кадры/видео серии с сервера сразу после скачивания (экономит место на диске).
+# Включено по умолчанию. Отключить: AUTO_CLEANUP_AFTER_DOWNLOAD=0
+AUTO_CLEANUP_AFTER_DOWNLOAD = os.getenv("AUTO_CLEANUP_AFTER_DOWNLOAD", "1") == "1"
+
 # --- API ключи ---
 # Картинки делает ChatGPT (OpenAI), анимацию — Grok (xAI), озвучку — ElevenLabs.
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
