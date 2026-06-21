@@ -65,23 +65,32 @@ cp .env.example .env        # ключи можно оставить пусты�
 Настоящее «оживление» кадров через твою подписку Grok (не платный API). Это
 автоматизация браузера grok.com под твоим логином.
 
-> ⚠️ Требует сервер **≥2 ГБ RAM** (Chromium тяжёлый) и хрупко к смене вёрстки
-> grok.com. На 1 ГБ — упадёт, оставь Ken Burns.
+> ⚠️ Требует много памяти (Chromium тяжёлый) и хрупко к смене вёрстки
+> grok.com. На сервере 1 ГБ работает ТОЛЬКО со swap-подкачкой (медленнее).
 
-1. Установи браузер:
+Всё делается в терминале сервера тремя шагами:
+
+1. Подготовить сервер (swap + браузер) — один скрипт:
    ```bash
-   pip3 install playwright --break-system-packages
-   python3 -m playwright install chromium
+   sudo bash svet-factory/tools/setup_grok.sh
    ```
-2. Сохрани сессию grok.com (один раз). Проще всего — расширением «EditThisCookie»
-   экспортировать cookies grok.com и сложить в файл `playwright` storage-state
-   формата в `.state/grok_state.json` (см. формат Playwright storageState).
-3. В `.env`: `USE_GROK_BROWSER=1`.
-4. Если grok.com поменял вёрстку и видео не берётся — поправь селекторы
-   `GROK_SEL_PROMPT` / `GROK_SEL_SUBMIT` в `.env`; при сбое модуль кладёт
-   скриншот `grok_debug.png` в папку серии — по нему видно, что нажимать.
+2. Отдать серверу свою сессию grok.com (один раз):
+   - войди на grok.com в обычном браузере, поставь расширение «Cookie-Editor»;
+   - на вкладке grok.com: Cookie-Editor → Export → «Export as JSON»;
+   - вставь в файл `cookies.json` на сервере и импортируй:
+   ```bash
+   python3 svet-factory/tools/grok_import_cookies.py cookies.json
+   ```
+3. Включить и перезапустить:
+   ```bash
+   echo "USE_GROK_BROWSER=1" >> svet-factory/.env
+   ```
+   затем перезапусти сервис.
 
-Сбой автоматизации не ломает ролик — кадр просто уходит на Ken Burns.
+Если grok.com поменял вёрстку и видео не берётся — поправь селекторы
+`GROK_SEL_PROMPT` / `GROK_SEL_SUBMIT` в `.env`; при сбое модуль кладёт скриншот
+`grok_debug.png` в папку серии — по нему видно, что нажимать. Сбой автоматизации
+не ломает ролик — кадр уходит на Ken Burns.
 
 ## Ключевые переменные `.env`
 
