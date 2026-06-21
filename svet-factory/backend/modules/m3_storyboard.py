@@ -95,6 +95,12 @@ def run(job, ctx: dict) -> str:
             mot_p = item.get("motion_prompt") or t["motion_prompt"]
         else:
             img_p, mot_p = t["image_prompt"], t["motion_prompt"]
+        # КЛЮЧЕВОЕ: действие героя (что он ДЕЛАЕТ) обязано попасть в анимацию,
+        # иначе клип = просто зум по статичной картинке («слайд-шоу»). Камера —
+        # это t["motion_prompt"], а само действие живёт в beat (on_screen).
+        action = (s.get("beat") or "").strip()
+        if action and action.lower() not in mot_p.lower():
+            mot_p = f"{mot_p}. Character action (animate this): {action}"
         storyboard.append({
             "id": s["id"],
             "role": s.get("role"),

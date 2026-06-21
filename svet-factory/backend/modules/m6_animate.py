@@ -24,7 +24,7 @@ def run(job, ctx: dict) -> str:
     engine = "демо"
     # базовая длина кадра — та же, что использует Монтаж (чтобы Grok-клип совпал, фикс #6)
     n = max(1, len(storyboard))
-    base_secs = max(3, min(config.SCENE_SECONDS, round(58 / n)))
+    base_secs = max(3, min(config.SCENE_SECONDS, round(config.EPISODE_TARGET_SEC / n)))
     ctx["scene_secs"] = base_secs
     # общий бюджет времени на анимацию всей серии: чтобы один зависший движок
     # не держал задачу час (как было раньше). Превысили — остаток уходит на

@@ -15,9 +15,9 @@ def run(job, ctx: dict) -> str:
     def _at(lst, idx):
         return lst[idx] if idx < len(lst) else None
 
-    # базовая длительность кадра — чтобы серия укладывалась в ~45–60 сек
+    # базовая длительность кадра — чтобы серия укладывалась в ~24–38 сек (TikTok)
     n = max(1, len(storyboard))
-    base = ctx.get("scene_secs") or max(3, min(config.SCENE_SECONDS, round(58 / n)))
+    base = ctx.get("scene_secs") or max(3, min(config.SCENE_SECONDS, round(config.EPISODE_TARGET_SEC / n)))
 
     # длительность КАЖДОГО кадра: не короче озвучки, иначе реплику обрежет (фикс аудита #2)
     secs_list: list[int] = []

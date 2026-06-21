@@ -42,6 +42,10 @@ def _int_env(name: str, default: int) -> int:
 
 
 SCENE_SECONDS = _int_env("SCENE_SECONDS", 5)
+# Целевая длина всей серии (сек). По алгоритму TikTok драма-история лучше всего
+# заходит в коридоре 24–38 сек (см. agents/tiktok-algorithm.md). Из неё считается
+# длина кадра: EPISODE_TARGET_SEC / число_кадров.
+EPISODE_TARGET_SEC = _int_env("EPISODE_TARGET_SEC", 34)
 VIDEO_WIDTH = _int_env("VIDEO_WIDTH", 1080)
 VIDEO_HEIGHT = _int_env("VIDEO_HEIGHT", 1920)
 # Общий бюджет времени на анимацию всей серии (сек). Защита от зависания
