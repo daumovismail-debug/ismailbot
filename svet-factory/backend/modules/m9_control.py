@@ -68,6 +68,20 @@ def run(job, ctx: dict) -> str:
                  "demo": not expect_real, "face_match_avg": avg_fm,
                  "checked": len(checked), "issues": issues}
 
+    # живой журнал контроля — чтобы автор видел, что именно проверено/забраковано
+    qclog = ctx.get("_qclog")
+    if qclog:
+        qclog("КОНТРОЛЬ", f"кадры на месте: {have}/{total}",
+              "ok" if have >= total else "reject")
+        for cid, fm in checked:
+            thr = THR_HUMAN if type_by_id.get(cid, "human") == "human" else THR_OTHER
+            qclog("КОНТРОЛЬ", f"сверка облика «{cid}»: {fm:.2f} (порог {thr})",
+                  "ok" if fm >= thr else "reject")
+        for it in issues:
+            qclog("КОНТРОЛЬ", f"дефект: {it}", "reject")
+        if not issues:
+            qclog("КОНТРОЛЬ", "все проверки пройдены ✅", "ok")
+
     vision = (f"vision: облик avg {avg_fm} ({len(checked)} кадра)" if avg_fm is not None
               else ("vision готов (нет кадров для сверки)" if openclaw_cli.available()
                     else "vision выкл (демо)"))

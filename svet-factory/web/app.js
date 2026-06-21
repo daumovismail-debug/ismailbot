@@ -349,9 +349,27 @@ function render() {
   else txt = `${cur.name}: ${cur.detail || "в работе…"}`;
   $("#progressText").textContent = txt;
 
+  renderQcLog();
   renderInspector(activeIdx);
   if (job.status === "awaiting_cast") renderCasting();
   else renderResult();
+}
+
+// ---------- живой журнал контроля ----------
+function renderQcLog() {
+  const log = (job.context && job.context.qc_log) || [];
+  const wrap = $("#qcWrap");
+  const box = $("#qcLog");
+  if (!log.length) { wrap.classList.add("hidden"); return; }
+  wrap.classList.remove("hidden");
+  const icon = { ok: "✅", retry: "🔁", reject: "⚠️", info: "•" };
+  box.innerHTML = log.map((e) =>
+    `<div class="qc-line ${esc(e.kind)}">
+       <span class="qc-ic">${icon[e.kind] || "•"}</span>
+       <span class="qc-stage">${esc(e.stage)}</span>
+       <span class="qc-msg">${esc(e.msg)}</span>
+     </div>`).join("");
+  box.scrollTop = box.scrollHeight;
 }
 
 // ---------- кастинг: подтверждение персонажей ----------
@@ -409,20 +427,27 @@ function renderResult() {
   const box = $("#result");
   const media = job.media || {};
   const ctx = job.context || {};
-  if (!(job.status === "done" && media.video)) {
+  // ролик показываем СРАЗУ, как только он собран (монтаж) — даже если контролёр
+  // и приёмка ещё идут параллельно. Финальные плашки добавим, когда статус done.
+  if (!media.video) {
     box.classList.add("hidden");
     return;
   }
+  const done = job.status === "done";
   const p = ctx.publish || {};
   const r = ctx.review || {};
-  let html = `<video controls playsinline src="${esc(media.video)}"></video>
+  let html = "";
+  if (!done)
+    html += `<div class="draft-note">🎬 Черновой ролик готов — контролёр и Режиссёр ещё проверяют (смотри журнал контроля ↑)</div>`;
+  html += `<video controls playsinline src="${esc(media.video)}"></video>
     <div class="result-actions">
       <a class="act primary" href="${esc(media.video)}" download>⬇ Скачать</a>`;
   if (p.telegram_url)
     html += `<a class="act tg" href="${esc(p.telegram_url)}" target="_blank" rel="noopener">✈ В Telegram</a>`;
   if (p.caption)
     html += `<button class="act" id="copyCap">⧉ Копировать подпись</button>`;
-  html += `<button class="act" id="mkSequel">➕ Сделать ${(job.episode || 1) + 1}-ю серию</button>`;
+  if (done)
+    html += `<button class="act" id="mkSequel">➕ Сделать ${(job.episode || 1) + 1}-ю серию</button>`;
   html += `</div>`;
   if (r.vibe_score != null) {
     const ok = r.accepted;
@@ -458,7 +483,8 @@ function renderResult() {
     }
   };
 
-  if (!resultShown) { $("#stagesWrap").open = false; resultShown = true; }
+  // таймлайн сворачиваем только когда всё ГОТОВО — пока идёт контроль, не мешаем смотреть
+  if (done && !resultShown) { $("#stagesWrap").open = false; resultShown = true; }
 }
 
 function renderInspector(idx) {

@@ -57,6 +57,13 @@ def run_pipeline(job: Job, start: int = 0) -> None:
     job.context["workdir"] = workdir
     if config.PUBLIC_BASE_URL:
         job.context["media_base"] = f"{config.PUBLIC_BASE_URL}/media/{job.id}"
+    # живой журнал контроля: модули пишут сюда, что проверили / забраковали /
+    # отправили на перерисовку — пользователь видит это в реальном времени.
+    job.context["_qclog"] = (
+        lambda stage, msg, kind="info", j=job: (
+            j.context.setdefault("qc_log", []).append(
+                {"t": time.time(), "stage": stage, "msg": msg, "kind": kind}),
+            store.save(j)))
     store.save(job)
 
     for i in range(start, len(MODULES)):

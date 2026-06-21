@@ -80,6 +80,15 @@ def run(job, ctx: dict) -> str:
     review.setdefault("notes", [])
     ctx["review"] = review
 
+    qclog = ctx.get("_qclog")
+    if qclog:
+        qclog("ПРИЁМКА",
+              f"вайб {review['vibe_score']}/100 — "
+              + ("принято ✅" if review["accepted"] else "на доработку ⚠️"),
+              "ok" if review["accepted"] else "reject")
+        for n in review.get("notes", [])[:5]:
+            qclog("ПРИЁМКА", n, "info" if review["accepted"] else "reject")
+
     src = "Режиссёр (LLM)" if ok else "вайб-эвристика"
     mark = "✅ принято" if review["accepted"] else "⚠️ на доработку"
     return (f"Приёмка Режиссёра ({src}): {mark}, вайб {review['vibe_score']}/100. "

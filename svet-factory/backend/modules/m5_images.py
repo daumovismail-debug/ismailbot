@@ -36,6 +36,7 @@ def run(job, ctx: dict) -> str:
     can_check = openclaw_cli.available() and hero and Path(hero).exists()
 
     progress = ctx.get("_progress")
+    qclog = ctx.get("_qclog")
     image_paths: list[str | None] = []
     real = 0
     retries_total = 0
@@ -76,8 +77,15 @@ def run(job, ctx: dict) -> str:
             else:
                 tmp.unlink(missing_ok=True)
             if fm is None or fm >= FACE_MIN:
+                if qclog and fm is not None:
+                    qclog("КАРТИНКИ", f"кадр {i + 1}: лицо OK ({fm:.2f}) — принят", "ok")
                 break  # лицо ок (или сверка недоступна)
             retries_total += 1                 # лицо «уплыло» — пробуем ещё
+            if qclog:
+                more = " — перерисовываю" if attempt < MAX_TRIES else " — лимит попыток, беру лучший"
+                qclog("КАРТИНКИ",
+                      f"кадр {i + 1}: лицо «уплыло» ({fm:.2f} < {FACE_MIN}){more}",
+                      "retry")
 
         image_paths.append(best)
         if best:
