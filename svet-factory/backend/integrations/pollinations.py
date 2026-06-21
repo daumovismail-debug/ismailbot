@@ -20,15 +20,23 @@ def _log(msg: str) -> None:
 
 
 def generate_image(prompt: str, width: int = 768, height: int = 1344,
-                   seed: int | None = None) -> bytes | None:
-    """Текст -> картинка (PNG/JPEG bytes). None при ошибке -> сработает запасной путь."""
+                   seed: int | None = None, image_url: str | None = None,
+                   model: str | None = None) -> bytes | None:
+    """Текст -> картинка (PNG/JPEG bytes). None при ошибке -> сработает запасной путь.
+
+    Если задан image_url — режим «по картинке-образцу» (image-to-image): художнику
+    показываем эталон героя, и он рисует ТО ЖЕ лицо в новой сцене. Для этого нужна
+    модель, умеющая принимать образец (model='kontext'), иначе образец игнорируется.
+    """
     if not config.USE_POLLINATIONS:
         return None
     q = urllib.parse.quote((prompt or "")[:1500])
     params = {"width": width, "height": height, "nologo": "true",
-              "model": config.POLLINATIONS_MODEL}
+              "model": model or config.POLLINATIONS_MODEL}
     if seed is not None:
         params["seed"] = seed
+    if image_url:
+        params["image"] = image_url   # эталон героя -> консистентность лица
     url = f"https://image.pollinations.ai/prompt/{q}"
     for attempt in range(2):
         try:

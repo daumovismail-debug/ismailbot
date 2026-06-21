@@ -4,20 +4,32 @@
 ChatGPT через OpenClaw в headless-режиме картинки не рисует, поэтому не зовём.
 Vision-сверка лица — опционально (USE_FACE_QC=1), по умолчанию выкл.
 """
+import hashlib
 import os
 from pathlib import Path
 
+from .. import config
 from ..integrations import openai_api, openclaw_cli, pollinations
 
 FACE_MIN = 0.60
 MAX_TRIES = 3
 
 
-def _gen(prompt: str, session_key: str):
+def _gen(prompt: str, session_key: str, seed: int | None = None,
+         ref_url: str | None = None):
+    # Слой 2: если есть эталон героя (ref_url) — рисуем «по образцу» (img2img),
+    # чтобы лицо НЕ менялось от кадра к кадру. Не вышло — обычный текст->картинка.
+    if ref_url:
+        img = pollinations.generate_image(
+            "Keep the SAME character identity, face and outfit as the reference "
+            "image. " + prompt,
+            seed=seed, image_url=ref_url, model=config.POLLINATIONS_EDIT_MODEL)
+        if img:
+            return img, "Pollinations (по эталону)"
     # Pollinations — надёжный бесплатный «художник». ChatGPT через OpenClaw в
     # фоновом (headless) режиме картинки НЕ рисует (у агента только bash),
     # поэтому его не зовём — иначе каждый кадр зря ждёт неудачу.
-    img = pollinations.generate_image(prompt)
+    img = pollinations.generate_image(prompt, seed=seed)
     if img:
         return img, "Pollinations"
     img = openai_api.generate_image(prompt)   # если задан OPENAI_API_KEY (платно)
@@ -31,6 +43,14 @@ def run(job, ctx: dict) -> str:
     storyboard = ctx["storyboard"]
     session_key = f"svet-{job.id}"
     hero = ctx.get("hero_path")
+    # Слой 2 (консистентность): публичный адрес эталона героини — его показываем
+    # художнику на каждом кадре. Нужен публичный media_base (PUBLIC_BASE_URL).
+    media_base = ctx.get("media_base")
+    hero_ref_url = None
+    if config.USE_REF_IMAGES and media_base and hero and Path(hero).exists():
+        hero_ref_url = f"{media_base}/{Path(hero).name}"
+    # Слой 3: один фиксированный seed на всю серию — лицо не «скачет» случайно.
+    seed = int(hashlib.md5(job.id.encode()).hexdigest(), 16) % 1_000_000
     # vision-сверка лица отключена: в headless-режиме у openclaw-агента нет
     # «зрения» (только bash), сверка всё равно вернёт None и лишь тормозит.
     # Включить можно флагом USE_FACE_QC=1, если появится рабочее зрение.
@@ -53,13 +73,16 @@ def run(job, ctx: dict) -> str:
             engine = "чекпоинт"
             continue
 
+        # эталон применяем к кадрам, где есть героиня (бренд-лид)
+        ref_url = hero_ref_url if "heroine" in shot.get("references", []) else None
         best = None
         best_score = -1.0
         for attempt in range(1, MAX_TRIES + 1):
             if progress:
                 progress(f"рисую кадр {i + 1}/{len(storyboard)}"
                          + (f" (попытка {attempt})" if attempt > 1 else "…"))
-            img, eng = _gen(shot["image_prompt"], session_key)
+            img, eng = _gen(shot["image_prompt"], session_key,
+                            seed=seed + i, ref_url=ref_url)
             if not img:
                 break
             engine = eng

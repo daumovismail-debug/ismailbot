@@ -78,6 +78,11 @@ GROK_SEL_SUBMIT = os.getenv("GROK_SEL_SUBMIT", "button[type=submit]")
 # изображения берём здесь — бесплатно и без регистрации.
 USE_POLLINATIONS = os.getenv("USE_POLLINATIONS", "1") != "0"
 POLLINATIONS_MODEL = os.getenv("POLLINATIONS_MODEL", "flux")
+# Модель для режима «по картинке-образцу» (image-to-image): сохраняет лицо героя
+# из эталона в каждом кадре. kontext (Flux Kontext) умеет принимать образец.
+POLLINATIONS_EDIT_MODEL = os.getenv("POLLINATIONS_EDIT_MODEL", "kontext")
+# Рисовать кадры от эталона героя (консистентность лица). Можно выключить =0.
+USE_REF_IMAGES = os.getenv("USE_REF_IMAGES", "1") != "0"
 
 # --- Казахский голос: edge-tts (нейроголоса Microsoft Edge, БЕСПЛАТНО) ---
 # Без ключей. Голоса: kk-KZ-AigulNeural (жен.), kk-KZ-DauletNeural (муж.).
