@@ -50,5 +50,10 @@ def run_json(agent_name: str, task: str, session_key: str | None = None):
     return _parse_json(raw)
 
 
+def parse_json(raw: str | None):
+    """Публичная обёртка над разбором JSON из ответа LLM (нужна интервью-продюсеру)."""
+    return _parse_json(raw)
+
+
 def llm_available() -> bool:
     return openclaw_cli.available() or openai_api.HAS_LLM

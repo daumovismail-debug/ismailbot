@@ -25,7 +25,14 @@ function showHome() {
 }
 function showBoard() {
   $("#home").classList.add("hidden");
+  $("#interview").classList.add("hidden");
   $("#board").classList.remove("hidden");
+}
+function showInterview() {
+  clearInterval(timer);
+  $("#home").classList.add("hidden");
+  $("#board").classList.add("hidden");
+  $("#interview").classList.remove("hidden");
 }
 
 // ---------- инициализация ----------
@@ -60,7 +67,14 @@ async function init() {
 
   $("#start").addEventListener("click", start);
   $("#back").addEventListener("click", showHome);
+  $("#ivBack").addEventListener("click", showHome);
   $("#brandHome").addEventListener("click", showHome);
+  $("#ivSend").addEventListener("click", ivReply);
+  $("#ivEnough").addEventListener("click", () =>
+    ivReply("Достаточно вопросов — собери бриф и предложи замысел."));
+  $("#ivInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ivReply(); }
+  });
   loadLibrary();
 }
 
@@ -93,31 +107,170 @@ async function loadLibrary() {
   });
 }
 
-// ---------- создание / открытие серии ----------
+// ---------- интервью с продюсером (перед производством) ----------
+let ivSession = null;     // id текущей сессии интервью
+let ivBrief = null;       // готовый бриф (когда продюсер закончил)
+
+function ivBubble(role, text) {
+  const chat = $("#ivChat");
+  const el = document.createElement("div");
+  el.className = "iv-msg " + (role === "user" ? "me" : "prod");
+  el.innerHTML = `<div class="iv-bubble">${esc(text)}</div>`;
+  chat.appendChild(el);
+  chat.scrollTop = chat.scrollHeight;
+  return el;
+}
+function ivTyping(on) {
+  let t = $("#ivTyping");
+  if (on) {
+    if (!t) {
+      t = document.createElement("div");
+      t.id = "ivTyping";
+      t.className = "iv-msg prod";
+      t.innerHTML = `<div class="iv-bubble typing">продюсер печатает…</div>`;
+      $("#ivChat").appendChild(t);
+      $("#ivChat").scrollTop = $("#ivChat").scrollHeight;
+    }
+  } else if (t) t.remove();
+}
+function ivInputEnabled(on) {
+  $("#ivInput").disabled = !on;
+  $("#ivSend").disabled = !on;
+  $("#ivEnough").disabled = !on;
+}
+
+// «Создать серию» теперь = начать диалог с продюсером
 async function start() {
   const theme = $("#theme").value.trim();
   $("#start").disabled = true;
   $("#createNote").textContent = "";
+  ivSession = null; ivBrief = null;
+  $("#ivChat").innerHTML = "";
+  $("#ivConfirm").classList.add("hidden");
+  $("#ivConfirm").innerHTML = "";
+  $("#ivInputRow").classList.remove("hidden");
+  $("#ivEnough").classList.remove("hidden");
+  showInterview();
+  ivInputEnabled(false);
+  ivTyping(true);
   try {
-    const res = await fetch("/api/jobs", {
+    const res = await fetch("/api/interview/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ theme }),
     });
+    ivTyping(false);
     if (!res.ok) {
-      $("#createNote").textContent = res.status === 429
-        ? "⚠️ Сервер занят — попробуй чуть позже."
-        : `⚠️ Не удалось запустить (HTTP ${res.status}).`;
+      ivBubble("prod", "Не получилось начать разговор. Попробуй ещё раз чуть позже.");
+      ivInputEnabled(true);
       $("#start").disabled = false;
       return;
     }
-    const { id } = await res.json();
+    const data = await res.json();
+    ivSession = data.session;
+    handleProducerTurn(data);
     $("#theme").value = "";
-    $("#start").disabled = false;
+  } catch (_) {
+    ivTyping(false);
+    ivBubble("prod", "Сеть недоступна. Проверь соединение и попробуй снова.");
+  }
+  $("#start").disabled = false;
+}
+
+async function ivReply(forced) {
+  if (!ivSession) return;
+  const inp = $("#ivInput");
+  const msg = typeof forced === "string" ? forced : inp.value.trim();
+  if (!msg) return;
+  ivBubble("user", typeof forced === "string" ? "(прошу предложить замысел)" : msg);
+  inp.value = "";
+  ivInputEnabled(false);
+  ivTyping(true);
+  try {
+    const res = await fetch("/api/interview/reply", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session: ivSession, message: msg }),
+    });
+    ivTyping(false);
+    if (!res.ok) {
+      ivBubble("prod", "Сорвалось. Напиши ещё раз, пожалуйста.");
+      ivInputEnabled(true);
+      return;
+    }
+    handleProducerTurn(await res.json());
+  } catch (_) {
+    ivTyping(false);
+    ivBubble("prod", "Сеть пропала. Повтори ответ.");
+    ivInputEnabled(true);
+  }
+}
+
+function handleProducerTurn(data) {
+  ivBubble("prod", data.message || "…");
+  if (data.done && data.brief) {
+    ivBrief = data.brief;
+    showConfirm(data.brief);
+  } else {
+    ivInputEnabled(true);
+    $("#ivInput").focus();
+  }
+}
+
+function showConfirm(brief) {
+  $("#ivInputRow").classList.add("hidden");
+  $("#ivEnough").classList.add("hidden");
+  const box = $("#ivConfirm");
+  const row = (label, val) => val
+    ? `<div class="iv-brief-row"><b>${esc(label)}</b> ${esc(val)}</div>` : "";
+  box.innerHTML = `
+    <div class="iv-brief">
+      <div class="iv-brief-title">Замысел серии</div>
+      ${row("Тема:", brief.idea)}
+      ${row("Герой:", brief.hero)}
+      ${row("Конфликт:", brief.core_conflict)}
+      ${row("Тон:", brief.tone)}
+      ${row("Хук:", brief.hook_type)}
+      ${row("Эмоция:", brief.target_emotion)}
+      ${row("Визуал:", brief.visual_mood)}
+      ${row("Детали:", brief.details)}
+    </div>
+    <div class="result-actions">
+      <button class="act primary" id="ivGo">🚀 Запустить производство</button>
+      <button class="act" id="ivMore">✎ Ещё обсудить</button>
+    </div>`;
+  box.classList.remove("hidden");
+  box.scrollIntoView({ behavior: "smooth" });
+  $("#ivGo").onclick = ivConfirm;
+  $("#ivMore").onclick = () => {
+    box.classList.add("hidden");
+    $("#ivInputRow").classList.remove("hidden");
+    $("#ivEnough").classList.remove("hidden");
+    ivInputEnabled(true);
+    $("#ivInput").focus();
+  };
+}
+
+async function ivConfirm() {
+  const go = $("#ivGo");
+  if (go) { go.disabled = true; go.textContent = "Запускаю…"; }
+  try {
+    const res = await fetch("/api/interview/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session: ivSession, brief: ivBrief }),
+    });
+    if (!res.ok) {
+      if (go) { go.disabled = false; go.textContent = "🚀 Запустить производство"; }
+      ivBubble("prod", res.status === 429
+        ? "Сервер сейчас занят другими сериями — попробуй через минуту."
+        : "Не удалось запустить производство. Попробуй ещё раз.");
+      return;
+    }
+    const { id } = await res.json();
     openJob(id);
   } catch (_) {
-    $("#createNote").textContent = "⚠️ Сеть недоступна.";
-    $("#start").disabled = false;
+    if (go) { go.disabled = false; go.textContent = "🚀 Запустить производство"; }
   }
 }
 

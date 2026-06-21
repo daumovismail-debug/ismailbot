@@ -13,16 +13,18 @@ MAX_TRIES = 3
 
 
 def _gen(prompt: str, session_key: str):
-    # Pollinations — основной «художник» (бесплатно, без ключей)
-    img = pollinations.generate_image(prompt)
+    # ChatGPT (подписка через OpenClaw) — основной «художник»: стабильнее держит
+    # лицо героини от кадра к кадру. По выбору автора картинки идут через ChatGPT.
+    img = openclaw_cli.generate_image(prompt, session_key=session_key)
+    if img:
+        return img, "ChatGPT"
+    # запасные пути — только если ChatGPT недоступен/не настроен
+    img = pollinations.generate_image(prompt)   # отключается флагом USE_POLLINATIONS=0
     if img:
         return img, "Pollinations"
     img = openai_api.generate_image(prompt)
     if img:
         return img, "OpenAI"
-    img = openclaw_cli.generate_image(prompt, session_key=session_key)
-    if img:
-        return img, "OpenClaw"
     return None, "демо"
 
 

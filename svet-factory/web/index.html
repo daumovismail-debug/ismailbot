@@ -25,11 +25,11 @@
   <main id="home" class="view">
     <section class="create glass">
       <h2 class="create-title">Новая серия</h2>
-      <p class="create-hint">Впиши тему-драму — команда AI сама сделает ролик за минуту.</p>
+      <p class="create-hint">Впиши идею — продюсер расспросит детали, предложит замысел, и команда AI сделает серию.</p>
       <div class="create-row">
         <input id="theme" list="ideas" placeholder="Напр.: Люстра или развод…" />
         <datalist id="ideas"></datalist>
-        <button id="start" class="btn-gold">Создать серию ✦</button>
+        <button id="start" class="btn-gold">Обсудить с продюсером ✦</button>
       </div>
       <div id="createNote" class="create-note"></div>
     </section>
@@ -42,6 +42,20 @@
       <div id="libGrid" class="lib-grid"></div>
       <div id="libEmpty" class="lib-empty hidden">Пока пусто — создай первую серию ↑</div>
     </section>
+  </main>
+
+  <!-- ===== ИНТЕРВЬЮ: продюсер расспрашивает автора ===== -->
+  <main id="interview" class="view hidden">
+    <button id="ivBack" class="back">← К сериалам</button>
+    <h2 class="board-title">🎬 Продюсер</h2>
+    <p class="create-hint">Ответь на вопросы продюсера. Когда он предложит замысел — подтверди, и начнётся производство.</p>
+    <section class="iv-chat glass" id="ivChat"></section>
+    <div id="ivConfirm" class="iv-confirm hidden"></div>
+    <div class="iv-input-row" id="ivInputRow">
+      <textarea id="ivInput" rows="1" placeholder="Напиши ответ продюсеру…"></textarea>
+      <button id="ivSend" class="btn-gold">Ответить</button>
+    </div>
+    <button id="ivEnough" class="iv-enough">Хватит вопросов — предложи замысел</button>
   </main>
 
   <!-- ===== СТУДИЯ: производство одной серии ===== -->

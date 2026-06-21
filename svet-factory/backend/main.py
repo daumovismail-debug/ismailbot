@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.background import BackgroundTask
 
-from . import config, idea_bank
+from . import config, idea_bank, interview
 from .jobs import store
 from .pipeline import run_pipeline
 
@@ -26,6 +26,20 @@ class CreateJob(BaseModel):
 
 class CastUpdate(BaseModel):
     cast: list | None = None   # отредактированная каста; None = принять как есть
+
+
+class InterviewStart(BaseModel):
+    theme: str | None = None
+
+
+class InterviewReply(BaseModel):
+    session: str
+    message: str | None = None
+
+
+class InterviewConfirm(BaseModel):
+    session: str
+    brief: dict | None = None   # ручные правки брифа; None = взять из сессии
 
 
 @app.get("/api/status")
@@ -55,6 +69,39 @@ def create_job(body: CreateJob):
         raise HTTPException(429, f"занято: уже {MAX_ACTIVE_JOBS} активных задач, подожди")
     job = store.create((body.theme or "").strip()[:200])
     threading.Thread(target=run_pipeline, args=(job,), daemon=True).start()
+    return {"id": job.id}
+
+
+@app.post("/api/interview/start")
+def interview_start(body: InterviewStart):
+    """Запускает интервью с продюсером (он первым задаёт вопросы автору)."""
+    return interview.start((body.theme or "").strip()[:200])
+
+
+@app.post("/api/interview/reply")
+def interview_reply(body: InterviewReply):
+    """Ответ автора продюсеру → следующий вопрос или готовый бриф (done=true)."""
+    out = interview.reply(body.session, body.message or "")
+    if out is None:
+        raise HTTPException(404, "сессия интервью не найдена (начни заново)")
+    return out
+
+
+@app.post("/api/interview/confirm")
+def interview_confirm(body: InterviewConfirm):
+    """Автор подтвердил замысел → создаём серию с этим брифом и запускаем конвейер."""
+    if store.active_count() >= MAX_ACTIVE_JOBS:
+        raise HTTPException(429, f"занято: уже {MAX_ACTIVE_JOBS} активных задач, подожди")
+    brief = body.brief if isinstance(body.brief, dict) else interview.get_brief(body.session)
+    if not isinstance(brief, dict) or not brief:
+        raise HTTPException(400, "бриф ещё не готов — продолжи интервью")
+    theme = (str(brief.get("idea") or "").strip() or "Серия")[:200]
+    job = store.create(theme)
+    job.context["brief"] = brief
+    job.context["brief_locked"] = True      # m1_idea возьмёт этот бриф как есть
+    store.save(job)
+    threading.Thread(target=run_pipeline, args=(job,), daemon=True).start()
+    interview.drop(body.session)
     return {"id": job.id}
 
 

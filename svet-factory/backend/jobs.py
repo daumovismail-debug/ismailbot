@@ -20,8 +20,8 @@ MODULE_NAMES = [
 ]
 
 # поля контекста, которые безопасно отдавать наружу / сохранять
-_SAFE_CTX_KEYS = ("idea", "brief", "cast", "cast_confirmed", "scenes", "storyboard",
-                  "voice_plan", "qc", "review", "forecast", "publish", "edl")
+_SAFE_CTX_KEYS = ("idea", "brief", "brief_locked", "cast", "cast_confirmed", "scenes",
+                  "storyboard", "voice_plan", "qc", "review", "forecast", "publish", "edl")
 
 
 @dataclass

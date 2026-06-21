@@ -71,6 +71,11 @@ def run(job, ctx: dict) -> str:
         f"эмоция-цель={brief.get('target_emotion','')}; "
         f"визуал={brief.get('visual_mood','')}."
     )
+    if brief.get("hero"):
+        task += f"\nГерой: {brief['hero']}."
+    # конкретика от автора из интервью продюсера — учти ОБЯЗАТЕЛЬНО
+    if isinstance(brief.get("details"), str) and brief["details"].strip():
+        task += f"\n\nПожелания и детали от автора (обязательно учти): {brief['details'].strip()}"
     # арка сезона: серия 2+ — продолжение от клиффхэнгера прошлой
     cliff = ctx.get("prev_cliffhanger")
     if job.episode > 1 and cliff:

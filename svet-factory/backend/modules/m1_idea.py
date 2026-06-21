@@ -38,6 +38,21 @@ def _merge(data: dict, idea: dict) -> dict:
 
 
 def run(job, ctx: dict) -> str:
+    # Бриф пришёл из интервью с автором (продюсер) — берём его как единую истину,
+    # ничего не выдумываем. Все агенты дальше читают ctx["brief"].
+    pre = ctx.get("brief")
+    if ctx.get("brief_locked") and isinstance(pre, dict) and pre:
+        theme = str(pre.get("idea") or job.theme or "").strip()
+        idea = {"theme": theme, "message": pre.get("core_conflict", "")}
+        brief = _merge(pre, idea)
+        if isinstance(pre.get("details"), str) and pre["details"].strip():
+            brief["details"] = pre["details"].strip()   # конкретика автора → агентам
+        ctx["idea"] = idea
+        ctx["brief"] = brief
+        return (f"Бриф от продюсера (интервью с автором): тема «{theme}», "
+                f"тон «{brief['tone']}», хук «{brief['hook_type']}», "
+                f"эмоция-цель «{brief['target_emotion']}».")
+
     idea = idea_bank.pick(job.theme)
     ctx["idea"] = idea
 
