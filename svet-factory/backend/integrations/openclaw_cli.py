@@ -127,7 +127,7 @@ def compare_faces(ref_path: str, img_path: str, timeout: int = 120) -> float | N
     msg = (
         f"Open these two image files and compare the MAIN character:\n"
         f"REFERENCE: {ref_path}\nNEW: {img_path}\n"
-        "Is it the same character (face, hair/crown, outfit)? Reply ONLY JSON: "
+        "Is it the same character (face, hair, outfit)? Reply ONLY JSON: "
         '{"face_match":0.0-1.0,"same":true/false}'
     )
     out = _run_agent(msg, timeout, session_key=None)

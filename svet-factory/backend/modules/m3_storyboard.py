@@ -10,23 +10,22 @@ from .. import agent_runner, cast_library
 STYLE_BIBLE = (
     "Pixar/Disney 3D animated film still, Unreal Engine 5 render, soft rounded "
     "shapes, smooth subsurface skin shading, warm cinematic lighting, vertical "
-    "9:16, clean lower third for subtitles, no text in image. Palette: warm gold, "
-    "cream-beige, deep burgundy accents, soft charcoal shadows. CHARACTER (keep "
-    "identical every shot): warm elegant woman in her early 30s, soft heart-shaped "
-    "face, large hazel eyes, light-tan skin; instead of hair an elegant glowing "
-    "crystal chandelier crown; cream-and-gold dress."
+    "9:16, clean lower third for subtitles, no text in image. CHARACTER (keep "
+    "identical every shot): warm woman in her early 30s, soft heart-shaped face, "
+    "large hazel eyes, natural dark hair, light-tan skin, modern everyday "
+    "clothing; emotions read clearly on her face."
 )
 
 # Канонная карта «свет = эмоция» (enum -> визуал) — синхронно с project-bible.md.
 LIGHT_MAP = {
-    "happy": "chandelier-crown glowing bright warm gold, eyes crinkled in a smile",
-    "sad": "crown dim and faint, cool muted light, eyes welling, lip trembling",
-    "anger": "crown flickering red, harsh contrast, brows furrowed, jaw clenched",
-    "shock": "sudden light flicker, deep shadows, eyes wide, frozen stare",
-    "fear": "unstable trembling light, dramatic shadows, wide darting eyes",
-    "hope": "warm light slowly growing golden, soft hopeful smile, chin lifting",
-    "despair": "crown almost out, cold darkness, half-closed dull eyes",
-    "resolve": "steady warm glow, focused steady eyes, firm closed lips",
+    "happy": "bright warm light, eyes crinkled in a genuine smile, relaxed shoulders",
+    "sad": "cool muted light, eyes welling, lip trembling, head lowered",
+    "anger": "harsh red-tinted contrast light, brows furrowed, jaw clenched",
+    "shock": "sudden hard light, deep shadows, eyes wide, frozen stare",
+    "fear": "unstable dim light, dramatic shadows, wide darting eyes",
+    "hope": "soft warm light growing golden, gentle hopeful smile, chin lifting",
+    "despair": "cold dark low light, half-closed dull eyes, slumped posture",
+    "resolve": "steady warm light, focused steady eyes, firm closed lips",
     "contempt": "cold side light, one-sided smirk, side glance",
 }
 

@@ -4,11 +4,11 @@
 """
 
 HERO_PASSPORT = (
-    "Pixar-style 3D animated character, a beautiful elegant woman in her 30s, "
-    "warm friendly face, soft features, gentle expressive eyes. Instead of hair "
-    "she wears an elegant glowing crystal chandelier as a crown, warm golden "
-    "light, delicate crystals. Cozy cinematic lighting, Pixar Disney render "
-    "style, soft skin shading. Vertical 9:16."
+    "Pixar-style 3D animated character, an expressive woman in her early 30s, "
+    "warm friendly face, soft rounded features, gentle expressive eyes, natural "
+    "hair, modern everyday clothing. Emotions read clearly on her face. Cozy "
+    "cinematic lighting, Pixar Disney render style, soft subsurface skin shading. "
+    "Vertical 9:16."
 )
 
 IDEA_BANK = [
