@@ -7,7 +7,7 @@ from pathlib import Path
 import time
 
 from .. import config
-from ..integrations import openclaw_cli, xai
+from ..integrations import grok_browser, openclaw_cli, xai
 
 
 def run(job, ctx: dict) -> str:
@@ -39,9 +39,18 @@ def run(job, ctx: dict) -> str:
         if out_of_time:
             budget_hit = True
 
+        # 0) Grok через ПОДПИСКУ (автоматизация браузера grok.com) — приоритет,
+        #    если включено и сессия настроена
+        if img_path and config.USE_GROK_BROWSER and not out_of_time:
+            clip = grok_browser.generate_video(
+                img_path, shot["motion_prompt"], seconds=base_secs,
+                debug_dir=str(workdir))
+            if clip:
+                engine = "Grok (подписка)"
+
         # 1) OpenClaw — отдаём локальный путь к кадру (только если явно включено,
         #    иначе пропускаем: видео может надолго зависать)
-        if img_path and config.USE_OPENCLAW_VIDEO and not out_of_time:
+        if not clip and img_path and config.USE_OPENCLAW_VIDEO and not out_of_time:
             clip = openclaw_cli.generate_video(
                 shot["motion_prompt"], image_path=img_path, session_key=session_key
             )

@@ -55,6 +55,16 @@ USE_OPENCLAW = os.getenv("USE_OPENCLAW", "1") != "0" and bool(OPENCLAW_BIN)
 # Поставь USE_OPENCLAW_VIDEO=1, когда подключишь рабочий видео-провайдер (Grok).
 USE_OPENCLAW_VIDEO = os.getenv("USE_OPENCLAW_VIDEO", "0") == "1"
 
+# --- Grok-видео через ПОДПИСКУ (автоматизация браузера grok.com, без API-ключа) ---
+# ВЫКЛ по умолчанию: нужен сервер >=2 ГБ + сохранённая сессия grok.com. См. README.
+USE_GROK_BROWSER = os.getenv("USE_GROK_BROWSER", "0") == "1"
+GROK_URL = os.getenv("GROK_URL", "https://grok.com/imagine")
+GROK_STATE_FILE = os.getenv("GROK_STATE_FILE", str(BASE_DIR / ".state" / "grok_state.json"))
+GROK_WAIT_MS = _int_env("GROK_WAIT_MS", 180_000)   # сколько ждём готовое видео
+# селекторы grok.com (могут поменяться — тогда правим тут через .env)
+GROK_SEL_PROMPT = os.getenv("GROK_SEL_PROMPT", "textarea")
+GROK_SEL_SUBMIT = os.getenv("GROK_SEL_SUBMIT", "button[type=submit]")
+
 # --- Pollinations.ai (бесплатный генератор картинок, без ключей) ---
 # Основной «художник»: OpenClaw картинки не умеет (только текст), поэтому
 # изображения берём здесь — бесплатно и без регистрации.
