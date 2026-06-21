@@ -14,6 +14,7 @@ def run(job, ctx: dict) -> str:
     workdir: Path = ctx["workdir"]
     storyboard = ctx["storyboard"]
     image_paths = ctx.get("image_paths") or []
+    scenes = ctx.get("scenes") or []
     media_base = ctx.get("media_base")
     session_key = f"svet-{job.id}"
 
@@ -40,10 +41,19 @@ def run(job, ctx: dict) -> str:
             budget_hit = True
 
         # 0) Grok через ПОДПИСКУ (автоматизация браузера grok.com) — приоритет,
-        #    если включено и сессия настроена
+        #    если включено и сессия настроена. Просим Grok, чтобы герой ГОВОРИЛ
+        #    казахскую реплику вслух — тогда у клипа будет родной голос Grok.
         if img_path and config.USE_GROK_BROWSER and not out_of_time:
+            line_kz = ""
+            if i < len(scenes):
+                line_kz = scenes[i].get("voice_kz") or scenes[i].get("voice") or ""
+            grok_prompt = shot["motion_prompt"]
+            if line_kz:
+                grok_prompt += (f". The character clearly speaks this line out loud "
+                                f"in Kazakh with natural lip-sync and audible voice: "
+                                f"«{line_kz}»")
             clip = grok_browser.generate_video(
-                img_path, shot["motion_prompt"], seconds=base_secs,
+                img_path, grok_prompt, seconds=base_secs,
                 debug_dir=str(workdir))
             if clip:
                 engine = "Grok (подписка)"
