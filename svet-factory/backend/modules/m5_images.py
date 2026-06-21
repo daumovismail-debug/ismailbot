@@ -1,9 +1,10 @@
-"""МОДУЛЬ 5 — КАРТИНКИ (с гейтом качества по кадру).
+"""МОДУЛЬ 5 — КАРТИНКИ.
 
-Приоритет: OpenClaw (подписка ChatGPT) -> OpenAI API -> плейсхолдер на монтаже.
-Один общий сеанс OpenClaw => героиня похожа. Если доступна vision-сверка —
-кадр с «уплывшим» лицом (face_match<0.60) перерисовывается, до 3 попыток (по SCHEMA).
+Художник: Pollinations (бесплатно, надёжно) -> OpenAI API (если есть ключ).
+ChatGPT через OpenClaw в headless-режиме картинки не рисует, поэтому не зовём.
+Vision-сверка лица — опционально (USE_FACE_QC=1), по умолчанию выкл.
 """
+import os
 from pathlib import Path
 
 from ..integrations import openai_api, openclaw_cli, pollinations
@@ -13,16 +14,13 @@ MAX_TRIES = 3
 
 
 def _gen(prompt: str, session_key: str):
-    # ChatGPT (подписка через OpenClaw) — основной «художник»: стабильнее держит
-    # лицо героини от кадра к кадру. По выбору автора картинки идут через ChatGPT.
-    img = openclaw_cli.generate_image(prompt, session_key=session_key)
-    if img:
-        return img, "ChatGPT"
-    # запасные пути — только если ChatGPT недоступен/не настроен
-    img = pollinations.generate_image(prompt)   # отключается флагом USE_POLLINATIONS=0
+    # Pollinations — надёжный бесплатный «художник». ChatGPT через OpenClaw в
+    # фоновом (headless) режиме картинки НЕ рисует (у агента только bash),
+    # поэтому его не зовём — иначе каждый кадр зря ждёт неудачу.
+    img = pollinations.generate_image(prompt)
     if img:
         return img, "Pollinations"
-    img = openai_api.generate_image(prompt)
+    img = openai_api.generate_image(prompt)   # если задан OPENAI_API_KEY (платно)
     if img:
         return img, "OpenAI"
     return None, "демо"
@@ -33,7 +31,11 @@ def run(job, ctx: dict) -> str:
     storyboard = ctx["storyboard"]
     session_key = f"svet-{job.id}"
     hero = ctx.get("hero_path")
-    can_check = openclaw_cli.available() and hero and Path(hero).exists()
+    # vision-сверка лица отключена: в headless-режиме у openclaw-агента нет
+    # «зрения» (только bash), сверка всё равно вернёт None и лишь тормозит.
+    # Включить можно флагом USE_FACE_QC=1, если появится рабочее зрение.
+    can_check = (os.getenv("USE_FACE_QC", "0") == "1"
+                 and openclaw_cli.available() and hero and Path(hero).exists())
 
     progress = ctx.get("_progress")
     qclog = ctx.get("_qclog")
