@@ -46,6 +46,21 @@ def available() -> bool:
     return True
 
 
+def _dismiss_overlays(page) -> None:
+    """Закрывает баннер cookies и модалку «что нового» — они перекрывают ввод."""
+    for txt in ("Accept All Cookies", "Reject All", "Accept all", "Принять все"):
+        try:
+            page.locator(f'button:has-text("{txt}")').first.click(timeout=1500)
+            break
+        except Exception:  # noqa: BLE001
+            continue
+    try:
+        page.keyboard.press("Escape")   # закрыть модалку «что нового»
+    except Exception:  # noqa: BLE001
+        pass
+    page.wait_for_timeout(500)
+
+
 def _type_prompt(page, prompt: str) -> bool:
     """Печатает запрос в поле ввода grok.com. Это contenteditable-редактор
     (tiptap/ProseMirror), а НЕ textarea — поэтому кликаем и печатаем с клавиатуры."""
@@ -80,6 +95,8 @@ def generate_video(image_path: str, prompt: str, seconds: int = 6,
             page = ctx.new_page()
             page.set_default_timeout(60_000)
             page.goto(config.GROK_URL, wait_until="domcontentloaded")
+            page.wait_for_timeout(3000)
+            _dismiss_overlays(page)   # закрыть cookies-баннер и модалку
 
             # 1) загрузить кадр (image-to-video). Ищем file input.
             page.set_input_files("input[type=file]", image_path)
@@ -176,6 +193,8 @@ def generate_image(prompt: str, debug_dir: str | None = None) -> bytes | None:
             page = ctx.new_page()
             page.set_default_timeout(60_000)
             page.goto(config.GROK_URL, wait_until="domcontentloaded")
+            page.wait_for_timeout(3000)
+            _dismiss_overlays(page)   # закрыть cookies-баннер и модалку
 
             # запоминаем картинки интерфейса ДО запроса — потом ищем НОВУЮ
             before = set(page.eval_on_selector_all("img", "els => els.map(e => e.src)"))
