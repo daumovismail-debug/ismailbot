@@ -10,7 +10,7 @@
 from pathlib import Path
 
 from .. import cast_library, config, ffmpeg_tool, idea_bank
-from ..integrations import openai_api, openclaw_cli, pollinations
+from ..integrations import grok_browser, openai_api, openclaw_cli, pollinations
 
 # постоянный кэш ассетов касты (вне output/, не раздаётся через /media)
 CAST_DIR = config.BASE_DIR / "cast"
@@ -25,7 +25,12 @@ MODEL_SHEET_PROMPT = (
 )
 
 
-def _gen(prompt: str, session_key: str) -> bytes | None:
+def _gen(prompt: str, session_key: str, debug_dir: str | None = None) -> bytes | None:
+    # Grok через подписку (если включено) — рисует эталон героя в Pixar-стиле
+    if config.USE_GROK_IMAGES:
+        img = grok_browser.generate_image(prompt, debug_dir=debug_dir)
+        if img:
+            return img
     # Pollinations — основной «художник» (бесплатно, без ключей)
     img = pollinations.generate_image(prompt)
     if img:
@@ -44,7 +49,7 @@ def _asset(cache: Path, dest: Path, prompt: str, session_key: str,
         return "кэш касты"
     if progress:
         progress(progress_text)
-    img = _gen(prompt, session_key)
+    img = _gen(prompt, session_key, debug_dir=str(dest.parent))
     if img:
         dest.write_bytes(img)
         try:

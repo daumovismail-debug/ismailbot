@@ -9,14 +9,19 @@ import os
 from pathlib import Path
 
 from .. import config
-from ..integrations import openai_api, openclaw_cli, pollinations
+from ..integrations import grok_browser, openai_api, openclaw_cli, pollinations
 
 FACE_MIN = 0.60
 MAX_TRIES = 3
 
 
 def _gen(prompt: str, session_key: str, seed: int | None = None,
-         ref_url: str | None = None):
+         ref_url: str | None = None, debug_dir: str | None = None):
+    # Grok через подписку (если включено) — рисует кадр в Pixar-стиле
+    if config.USE_GROK_IMAGES:
+        img = grok_browser.generate_image(prompt, debug_dir=debug_dir)
+        if img:
+            return img, "Grok (подписка)"
     # Слой 2: если есть эталон героя (ref_url) — рисуем «по образцу» (img2img),
     # чтобы лицо НЕ менялось от кадра к кадру. Не вышло — обычный текст->картинка.
     if ref_url:
@@ -82,7 +87,7 @@ def run(job, ctx: dict) -> str:
                 progress(f"рисую кадр {i + 1}/{len(storyboard)}"
                          + (f" (попытка {attempt})" if attempt > 1 else "…"))
             img, eng = _gen(shot["image_prompt"], session_key,
-                            seed=seed + i, ref_url=ref_url)
+                            seed=seed + i, ref_url=ref_url, debug_dir=str(workdir))
             if not img:
                 break
             engine = eng

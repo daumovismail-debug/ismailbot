@@ -18,6 +18,8 @@
 """
 from pathlib import Path
 
+import time
+
 from .. import config
 
 try:
@@ -32,7 +34,8 @@ def _log(msg: str) -> None:
 
 
 def available() -> bool:
-    if not config.USE_GROK_BROWSER:
+    # включён хотя бы один режим Grok-браузера (видео или картинки)
+    if not (config.USE_GROK_BROWSER or config.USE_GROK_IMAGES):
         return False
     if not _HAS_PW:
         _log("playwright не установлен (pip install playwright + playwright install chromium)")
@@ -100,6 +103,106 @@ def generate_video(image_path: str, prompt: str, seconds: int = 6,
         try:
             if page:
                 page.screenshot(path=str(shot))   # скриншот для отладки селекторов
+                _log(f"скриншот сохранён: {shot}")
+        except Exception:  # noqa: BLE001
+            pass
+        return None
+
+
+def _is_image(d: bytes | None) -> bool:
+    """PNG/JPEG достаточного размера (отсекаем иконки-обрезки интерфейса)."""
+    return bool(d) and len(d) > 8000 and (d[:4] == b"\x89PNG" or d[:3] == b"\xff\xd8\xff")
+
+
+def _looks_generated(src: str) -> bool:
+    """Похоже ли это на СГЕНЕРИРОВАННУЮ картинку, а не на иконку интерфейса."""
+    if not src:
+        return False
+    if src.startswith(("blob:", "data:")):
+        return True
+    s = src.lower()
+    if any(x in s for x in ("logo", "icon", "avatar", "favicon", "sprite", ".svg")):
+        return False
+    return s.startswith("http")
+
+
+def _download_src(ctx, page, src: str) -> bytes | None:
+    """Скачиваем медиа по src (http / blob / data) в контексте сессии."""
+    try:
+        if src.startswith("http"):
+            resp = ctx.request.get(src)
+            return resp.body() if resp.ok else None
+        if src.startswith(("blob:", "data:")):
+            arr = page.evaluate(
+                """async (s) => { const r = await fetch(s);
+                   const b = await r.arrayBuffer();
+                   return Array.from(new Uint8Array(b)); }""", src)
+            return bytes(arr) if arr else None
+    except Exception:  # noqa: BLE001
+        return None
+    return None
+
+
+def generate_image(prompt: str, debug_dir: str | None = None) -> bytes | None:
+    """Рисует КАРТИНКУ через grok.com Imagine под твоей подпиской. -> bytes или None.
+
+    Используется для эталона героя (Модуль 4) и кадров раскадровки (Модуль 5).
+    """
+    if not available():
+        return None
+    shot = Path(debug_dir or ".") / "grok_img_debug.png"
+    page = None
+    try:
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(
+                headless=True,
+                args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
+            )
+            ctx = browser.new_context(storage_state=config.GROK_STATE_FILE)
+            page = ctx.new_page()
+            page.set_default_timeout(60_000)
+            page.goto(config.GROK_URL, wait_until="domcontentloaded")
+
+            # запоминаем картинки интерфейса ДО запроса — потом ищем НОВУЮ
+            before = set(page.eval_on_selector_all("img", "els => els.map(e => e.src)"))
+
+            page.locator(config.GROK_SEL_PROMPT).first.fill(prompt)
+            page.locator(config.GROK_SEL_SUBMIT).first.click()
+
+            deadline = time.monotonic() + config.GROK_IMG_WAIT_MS / 1000
+            data = None
+            while time.monotonic() < deadline and not data:
+                if config.GROK_SEL_RESULT_IMG:
+                    try:
+                        loc = page.locator(config.GROK_SEL_RESULT_IMG).first
+                        loc.wait_for(state="visible", timeout=3000)
+                        cands = [loc.get_attribute("src")]
+                    except Exception:  # noqa: BLE001
+                        cands = []
+                else:
+                    now = page.eval_on_selector_all("img", "els => els.map(e => e.src)")
+                    cands = [s for s in now if s not in before and _looks_generated(s)]
+                for src in cands:
+                    d = _download_src(ctx, page, src) if src else None
+                    if _is_image(d):
+                        data = d
+                        break
+                if not data:
+                    page.wait_for_timeout(2000)
+
+            if not data and page:
+                page.screenshot(path=str(shot))   # для тюнинга селекторов
+                _log(f"картинка не найдена — скриншот: {shot}")
+            ctx.close()
+            browser.close()
+            if data:
+                _log("картинка получена через подписку ✅")
+            return data
+    except Exception as e:  # noqa: BLE001
+        _log(f"ошибка генерации картинки: {e}")
+        try:
+            if page:
+                page.screenshot(path=str(shot))
                 _log(f"скриншот сохранён: {shot}")
         except Exception:  # noqa: BLE001
             pass
