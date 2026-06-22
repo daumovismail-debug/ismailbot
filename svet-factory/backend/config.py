@@ -71,7 +71,7 @@ USE_GROK_IMAGES = os.getenv("USE_GROK_IMAGES", "0") == "1"
 GROK_URL = os.getenv("GROK_URL", "https://grok.com/imagine")
 GROK_STATE_FILE = os.getenv("GROK_STATE_FILE", str(BASE_DIR / ".state" / "grok_state.json"))
 GROK_WAIT_MS = _int_env("GROK_WAIT_MS", 180_000)   # сколько ждём готовое видео
-GROK_IMG_WAIT_MS = _int_env("GROK_IMG_WAIT_MS", 120_000)  # ждём готовую картинку
+GROK_IMG_WAIT_MS = _int_env("GROK_IMG_WAIT_MS", 90_000)  # доза-ожидание чёткой картинки
 # селекторы grok.com (могут поменяться — тогда правим тут через .env)
 GROK_SEL_PROMPT = os.getenv("GROK_SEL_PROMPT", '[aria-label="Ask Grok anything"]')
 GROK_SEL_SUBMIT = os.getenv("GROK_SEL_SUBMIT", "button[type=submit]")

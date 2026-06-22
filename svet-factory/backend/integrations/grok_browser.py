@@ -208,38 +208,30 @@ def generate_image(prompt: str, debug_dir: str | None = None) -> bytes | None:
             page.wait_for_timeout(3000)
             _dismiss_overlays(page)   # закрыть cookies-баннер и модалку
 
-            # запоминаем картинки интерфейса ДО запроса — потом ищем НОВУЮ
-            before = set(page.eval_on_selector_all("img", "els => els.map(e => e.src)"))
-
             typed = _type_prompt(page, prompt)
             if typed:
                 page.keyboard.press("Enter")
 
-            # если поле не нашли — не ждём впустую, сразу скриншот для отладки
-            deadline = time.monotonic() + (config.GROK_IMG_WAIT_MS / 1000 if typed else 0)
-            # Grok сначала показывает РАЗМЫТОЕ мелкое превью, потом готовую картинку.
-            # Поэтому берём САМУЮ БОЛЬШУЮ из новых картинок и ждём, пока она дорастёт
-            # до «финального» размера (превью — мелкое, финал — сотни КБ).
+            # Резкая версия у Grok появляется НЕ сразу (~1.5–2 мин): сначала мягкое
+            # превью ~100КБ, потом чёткие ~200–260КБ. Поэтому ждём и берём САМУЮ
+            # ТЯЖЁЛУЮ из сгенерированных картинок — она и есть финальная резкая.
             best, best_size = None, 0
-            while time.monotonic() < deadline:
-                if config.GROK_SEL_RESULT_IMG:
-                    try:
-                        loc = page.locator(config.GROK_SEL_RESULT_IMG).first
-                        loc.wait_for(state="visible", timeout=3000)
-                        cands = [loc.get_attribute("src")]
-                    except Exception:  # noqa: BLE001
-                        cands = []
-                else:
-                    now = page.eval_on_selector_all("img", "els => els.map(e => e.src)")
-                    cands = [s for s in now if s not in before and _looks_generated(s)]
-                for src in cands:
-                    d = _download_src(ctx, page, src) if src else None
-                    if _is_image(d) and len(d) > best_size:
-                        best, best_size = d, len(d)
-                if best_size >= 80_000:      # это уже похоже на финальную картинку
-                    break
-                page.wait_for_timeout(2500)
-            data = best if best_size >= 40_000 else None   # отсекаем блюр-превью
+            if typed:
+                page.wait_for_timeout(70_000)   # дать генерации стартовать
+                deadline = time.monotonic() + max(30, config.GROK_IMG_WAIT_MS / 1000)
+                while time.monotonic() < deadline:
+                    srcs = page.eval_on_selector_all(
+                        "img", "els => els.filter(e => e.naturalWidth >= 400).map(e => e.src)")
+                    for s in srcs:
+                        if not _looks_generated(s):
+                            continue
+                        d = _download_src(ctx, page, s)
+                        if _is_image(d) and len(d) > best_size:
+                            best, best_size = d, len(d)
+                    if best_size >= 180_000:    # уверенно финальная резкая картинка
+                        break
+                    page.wait_for_timeout(10_000)
+            data = best   # самая тяжёлая = самая чёткая (если нашли)
 
             if not data and page:
                 page.screenshot(path=str(shot))   # для тюнинга селекторов
