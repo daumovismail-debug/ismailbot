@@ -26,12 +26,11 @@ MODEL_SHEET_PROMPT = (
 
 
 def _gen(prompt: str, session_key: str, debug_dir: str | None = None) -> bytes | None:
-    # Grok через подписку (если включено) — рисует эталон героя в Pixar-стиле
+    # Grok включён → рисует ТОЛЬКО Grok (без бесплатного запасного). Не вышло —
+    # вернём None, дальше будет заглушка (видно, что Grok не сработал — починим).
     if config.USE_GROK_IMAGES:
-        img = grok_browser.generate_image(prompt, debug_dir=debug_dir)
-        if img:
-            return img
-    # Pollinations — основной «художник» (бесплатно, без ключей)
+        return grok_browser.generate_image(prompt, debug_dir=debug_dir)
+    # Grok выключен → обычный «художник» (Pollinations и т.д.)
     img = pollinations.generate_image(prompt)
     if img:
         return img

@@ -17,11 +17,11 @@ MAX_TRIES = 3
 
 def _gen(prompt: str, session_key: str, seed: int | None = None,
          ref_url: str | None = None, debug_dir: str | None = None):
-    # Grok через подписку (если включено) — рисует кадр в Pixar-стиле
+    # Grok включён → рисует ТОЛЬКО Grok (без бесплатного запасного). Не вышло —
+    # None, дальше будет заглушка (видно, что Grok не сработал — починим).
     if config.USE_GROK_IMAGES:
         img = grok_browser.generate_image(prompt, debug_dir=debug_dir)
-        if img:
-            return img, "Grok (подписка)"
+        return (img, "Grok (подписка)") if img else (None, "Grok не нарисовал")
     # Слой 2: если есть эталон героя (ref_url) — рисуем «по образцу» (img2img),
     # чтобы лицо НЕ менялось от кадра к кадру. Не вышло — обычный текст->картинка.
     if ref_url:
