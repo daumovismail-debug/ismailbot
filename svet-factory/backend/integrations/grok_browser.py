@@ -217,8 +217,11 @@ def generate_image(prompt: str, debug_dir: str | None = None) -> bytes | None:
 
             # если поле не нашли — не ждём впустую, сразу скриншот для отладки
             deadline = time.monotonic() + (config.GROK_IMG_WAIT_MS / 1000 if typed else 0)
-            data = None
-            while time.monotonic() < deadline and not data:
+            # Grok сначала показывает РАЗМЫТОЕ мелкое превью, потом готовую картинку.
+            # Поэтому берём САМУЮ БОЛЬШУЮ из новых картинок и ждём, пока она дорастёт
+            # до «финального» размера (превью — мелкое, финал — сотни КБ).
+            best, best_size = None, 0
+            while time.monotonic() < deadline:
                 if config.GROK_SEL_RESULT_IMG:
                     try:
                         loc = page.locator(config.GROK_SEL_RESULT_IMG).first
@@ -231,11 +234,12 @@ def generate_image(prompt: str, debug_dir: str | None = None) -> bytes | None:
                     cands = [s for s in now if s not in before and _looks_generated(s)]
                 for src in cands:
                     d = _download_src(ctx, page, src) if src else None
-                    if _is_image(d):
-                        data = d
-                        break
-                if not data:
-                    page.wait_for_timeout(2000)
+                    if _is_image(d) and len(d) > best_size:
+                        best, best_size = d, len(d)
+                if best_size >= 80_000:      # это уже похоже на финальную картинку
+                    break
+                page.wait_for_timeout(2500)
+            data = best if best_size >= 40_000 else None   # отсекаем блюр-превью
 
             if not data and page:
                 page.screenshot(path=str(shot))   # для тюнинга селекторов
