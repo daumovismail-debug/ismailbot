@@ -89,6 +89,17 @@ def short_desc(c: dict) -> str:
 
 
 
+def hero_passport(look: str, default: str) -> str:
+    """Эталон-промпт главной героини. Если Режиссёр (интервью) описал внешность
+    (`look`) — рисуем по нему; иначе берём дефолтный паспорт."""
+    look = (look or "").strip()
+    if not look:
+        return default
+    return (f"Pixar/Disney 3D animated character, {look}. Emotions read clearly on "
+            f"the face. Cozy cinematic lighting, Pixar Disney render style, soft "
+            f"subsurface skin shading. Vertical 9:16.")
+
+
 def passport_prompt(p: dict, hero_passport: str) -> str:
     """Промпт-эталон персонажа из его паспорта (героиня — канон, остальные — по полям)."""
     if p.get("id") == "heroine":

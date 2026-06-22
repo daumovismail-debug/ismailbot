@@ -8,7 +8,7 @@
 from .. import agent_runner, idea_bank
 
 # поля брифа по director.md — все обязаны присутствовать в выходе модуля
-BRIEF_KEYS = ("idea", "tone", "hero", "core_conflict", "hook_type",
+BRIEF_KEYS = ("idea", "tone", "hero", "hero_look", "core_conflict", "hook_type",
               "target_emotion", "visual_mood", "series_link")
 
 
@@ -17,6 +17,8 @@ def _demo_brief(idea: dict) -> dict:
         "idea": idea.get("theme", ""),
         "tone": "высокая драма, тревога",
         "hero": "heroine",
+        "hero_look": "Kazakh woman in her early 30s, warm round face, expressive "
+                     "dark eyes, dark hair, modern everyday clothing",
         "core_conflict": idea.get("message", idea.get("theme", "")),
         "hook_type": "ультиматум",
         "target_emotion": "сопереживание + жажда продолжения",

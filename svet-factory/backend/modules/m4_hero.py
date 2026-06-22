@@ -66,11 +66,15 @@ def run(job, ctx: dict) -> str:
     CAST_DIR.mkdir(parents=True, exist_ok=True)
     cast = ctx.get("cast") or [dict(cast_library.HEROINE)]
     progress = ctx.get("_progress")
+    # облик главной героини — из брифа Режиссёра (внешность, что выяснили в интервью)
+    brief = ctx.get("brief") or {}
+    hero_pp = cast_library.hero_passport(brief.get("hero_look", ""),
+                                         idea_bank.HERO_PASSPORT)
 
     srcs = []
     for c in cast:
         cid = c.get("id", "char")
-        prompt = cast_library.passport_prompt(c, idea_bank.HERO_PASSPORT)
+        prompt = cast_library.passport_prompt(c, hero_pp)
         dest = workdir / ("hero.png" if cid == "heroine" else f"char_{cid}.png")
         src = _asset(CAST_DIR / f"{cid}.png", dest, prompt, session_key,
                      f"{c.get('name','')}\n(демо-эталон)", progress,

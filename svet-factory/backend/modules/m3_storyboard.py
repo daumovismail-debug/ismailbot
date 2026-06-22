@@ -7,14 +7,27 @@
 from .. import agent_runner, cast_library
 
 # Style Bible (канон из project-bible.md / artist.md) — в каждый промпт без изменений.
-STYLE_BIBLE = (
+STYLE_BASE = (
     "Pixar/Disney 3D animated film still, Unreal Engine 5 render, soft rounded "
     "shapes, smooth subsurface skin shading, warm cinematic lighting, vertical "
-    "9:16, clean lower third for subtitles, no text in image. CHARACTER (keep "
-    "identical every shot): warm woman in her early 30s, soft heart-shaped face, "
-    "large hazel eyes, natural dark hair, light-tan skin, modern everyday "
-    "clothing; emotions read clearly on her face."
+    "9:16, clean lower third for subtitles, no text in image."
 )
+DEFAULT_CHAR = (
+    " CHARACTER (keep identical every shot): warm woman in her early 30s, soft "
+    "heart-shaped face, large hazel eyes, natural dark hair, light-tan skin, "
+    "modern everyday clothing; emotions read clearly on her face."
+)
+STYLE_BIBLE = STYLE_BASE + DEFAULT_CHAR
+
+
+def _style_bible(brief: dict) -> str:
+    """Style Bible с обликом героя из интервью (если задан) — чтобы во всех кадрах
+    был ТОТ ЖЕ персонаж, которого описал Режиссёр."""
+    look = (brief or {}).get("hero_look", "").strip()
+    if not look:
+        return STYLE_BIBLE
+    return (STYLE_BASE + f" CHARACTER (keep identical every shot): {look}; "
+            "emotions read clearly on the face.")
 
 # Канонная карта «свет = эмоция» (enum -> визуал) — синхронно с project-bible.md.
 LIGHT_MAP = {
@@ -38,7 +51,7 @@ _MOTION = {
 }
 
 
-def _template(scene: dict, extra_chars: list[dict]) -> dict:
+def _template(scene: dict, extra_chars: list[dict], style_bible: str) -> dict:
     light = LIGHT_MAP.get(scene.get("light", ""), "warm cinematic light")
     beat = scene.get("beat", "")
     # лок второстепенных: подмешиваем их облик в промпт (чтобы были одинаковыми)
@@ -47,7 +60,7 @@ def _template(scene: dict, extra_chars: list[dict]) -> dict:
         extra = " Also in frame (keep identical): " + \
                 "; ".join(cast_library.short_desc(c) for c in extra_chars) + "."
     return {
-        "image_prompt": f"{STYLE_BIBLE} {light}. Scene: {beat}.{extra} vertical 9:16.",
+        "image_prompt": f"{style_bible} {light}. Scene: {beat}.{extra} vertical 9:16.",
         "motion_prompt": _MOTION.get(scene.get("role", ""), "smooth cinematic camera motion"),
     }
 
@@ -56,6 +69,7 @@ def run(job, ctx: dict) -> str:
     scenes = ctx["scenes"]
     cast = ctx.get("cast", [])
     by_cid = {c.get("id"): c for c in cast}
+    style_bible = _style_bible(ctx.get("brief") or {})   # облик героя из интервью
 
     # 1) Пытаемся через Художника (LLM по рецепту artist.md)
     shots_brief = "\n".join(
@@ -84,7 +98,7 @@ def run(job, ctx: dict) -> str:
         extra_chars = [by_cid[i] for i in present if i in by_cid]
 
         item = by_id.get(s["id"])
-        t = _template(s, extra_chars)
+        t = _template(s, extra_chars, style_bible)
         if item and item.get("image_prompt"):
             img_p = item["image_prompt"]
             # подмешиваем лок второстепенных и к промпту от LLM

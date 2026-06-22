@@ -16,7 +16,7 @@ from . import agent_runner
 from .integrations import openai_api, openclaw_cli
 
 # ключи брифа — ДОЛЖНЫ совпадать с m1_idea.BRIEF_KEYS (+ свободные «details»)
-BRIEF_KEYS = ("idea", "tone", "hero", "core_conflict", "hook_type",
+BRIEF_KEYS = ("idea", "tone", "hero", "hero_look", "core_conflict", "hook_type",
               "target_emotion", "visual_mood", "series_link")
 
 _SYSTEM = """Ты — опытный РЕЖИССЁР коротких вертикальных видео-драм (9:16, \
@@ -59,6 +59,9 @@ _SYSTEM = """Ты — опытный РЕЖИССЁР коротких верт�
 - если готов завершить:
   {"done": true, "message": "<короткий пересказ замысла для подтверждения>", \
 "brief": {"idea": "<тема>", "tone": "<тон>", "hero": "<герой>", \
+"hero_look": "<ВНЕШНОСТЬ главного героя для художника, на АНГЛИЙСКОМ: этнос, \
+возраст, лицо, волосы, одежда — напр. 'Kazakh woman, 35, warm round face, dark \
+hair in a bun, modern blouse'>", \
 "core_conflict": "<конфликт>", "hook_type": "<тип хука>", \
 "target_emotion": "<эмоция-цель>", "visual_mood": "<визуал>", \
 "series_link": "<связь с сезоном>", "details": "<абзац с конкретикой от автора: \
