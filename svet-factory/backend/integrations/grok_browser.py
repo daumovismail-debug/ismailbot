@@ -47,10 +47,13 @@ def available() -> bool:
 
 
 def _dismiss_overlays(page) -> None:
-    """Закрывает баннер cookies и модалку «что нового» — они перекрывают ввод."""
-    for txt in ("Accept All Cookies", "Reject All", "Accept all", "Принять все"):
+    """Закрывает баннер cookies (OneTrust) и модалку «что нового» — они
+    перекрывают поле ввода и перехватывают клики."""
+    # OneTrust: у кнопок согласия фиксированные id — жмём их напрямую
+    for sel in ("#onetrust-accept-btn-handler", "#onetrust-reject-all-handler",
+                'button:has-text("Accept All Cookies")', 'button:has-text("Reject All")'):
         try:
-            page.locator(f'button:has-text("{txt}")').first.click(timeout=1500)
+            page.locator(sel).first.click(timeout=2500)
             break
         except Exception:  # noqa: BLE001
             continue
@@ -58,7 +61,7 @@ def _dismiss_overlays(page) -> None:
         page.keyboard.press("Escape")   # закрыть модалку «что нового»
     except Exception:  # noqa: BLE001
         pass
-    page.wait_for_timeout(500)
+    page.wait_for_timeout(800)
 
 
 def _type_prompt(page, prompt: str) -> bool:
