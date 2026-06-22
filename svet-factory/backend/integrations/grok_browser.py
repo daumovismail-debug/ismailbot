@@ -110,37 +110,56 @@ def generate_video(image_path: str, prompt: str, seconds: int = 6,
             page.wait_for_timeout(3000)
             _dismiss_overlays(page)   # закрыть cookies-баннер и модалку
 
-            # 1) загрузить кадр (image-to-video). Ищем file input.
-            page.set_input_files("input[type=file]", image_path)
+            # 0) переключиться в режим ВИДЕО (вкладка Video у поля ввода)
+            for sel in ('button:has-text("Video")', '[role=tab]:has-text("Video")',
+                        'text="Video"'):
+                try:
+                    page.locator(sel).first.click(timeout=4000)
+                    break
+                except Exception:  # noqa: BLE001
+                    continue
+            page.wait_for_timeout(1500)
+
+            # видео, что УЖЕ есть на странице (история) — чтобы потом отличить НОВОЕ
+            def _vsrc():
+                return page.eval_on_selector_all(
+                    "video",
+                    "els => els.map(e => e.currentSrc || e.src || "
+                    "(e.querySelector('source') ? e.querySelector('source').src : ''))")
+            before = set(s for s in _vsrc() if s)
+
+            # 1) загрузить НАШ кадр (image-to-video)
+            try:
+                page.set_input_files("input[type=file]", image_path)
+                page.wait_for_timeout(2000)
+            except Exception:  # noqa: BLE001
+                pass
 
             # 2) вписать промпт движения и 3) запустить (Enter)
             if _type_prompt(page, prompt):
                 page.keyboard.press("Enter")
 
-            # 4) дождаться готового видео и забрать его src
-            video = page.locator("video").first
-            video.wait_for(state="visible", timeout=config.GROK_WAIT_MS)
-            src = video.get_attribute("src")
+            # 4) дождаться НОВОГО готового видео (не из истории) и скачать его
+            deadline = time.monotonic() + config.GROK_WAIT_MS / 1000
             data = None
-            if src:
-                # скачиваем mp4 в контексте сессии (если blob: — берём через fetch)
-                if src.startswith("http"):
-                    resp = ctx.request.get(src)
-                    if resp.ok:
-                        data = resp.body()
-                else:
-                    data = page.evaluate(
-                        """async (s) => { const r = await fetch(s);
-                           const b = await r.arrayBuffer();
-                           return Array.from(new Uint8Array(b)); }""", src)
-                    data = bytes(data) if data else None
+            while time.monotonic() < deadline and not data:
+                new = [s for s in _vsrc() if s and s not in before]
+                for src in new:
+                    d = _download_src(ctx, page, src)
+                    if d and len(d) > 500_000:    # реальный клип (МБ), не превью
+                        data = d
+                        break
+                if not data:
+                    page.wait_for_timeout(5000)
+
+            if not data and page:
+                page.screenshot(path=str(shot))
+                _log(f"новое видео не нашлось — скриншот: {shot}")
             ctx.close()
             browser.close()
             if data:
                 _log("видео получено через подписку ✅")
-                return data
-            _log("видео не нашлось на странице (см. селекторы)")
-            return None
+            return data
     except Exception as e:  # noqa: BLE001
         _log(f"ошибка автоматизации: {e}")
         try:
