@@ -46,6 +46,23 @@ def available() -> bool:
     return True
 
 
+def _type_prompt(page, prompt: str) -> bool:
+    """Печатает запрос в поле ввода grok.com. Это contenteditable-редактор
+    (tiptap/ProseMirror), а НЕ textarea — поэтому кликаем и печатаем с клавиатуры."""
+    selectors = [config.GROK_SEL_PROMPT, ".tiptap.ProseMirror",
+                 "div[contenteditable='true']", "textarea"]
+    for sel in selectors:
+        loc = page.locator(sel).first
+        try:
+            loc.wait_for(state="visible", timeout=8000)
+        except Exception:  # noqa: BLE001
+            continue
+        loc.click()
+        page.keyboard.type(prompt, delay=5)
+        return True
+    return False
+
+
 def generate_video(image_path: str, prompt: str, seconds: int = 6,
                    debug_dir: str | None = None) -> bytes | None:
     """Оживляет кадр через grok.com Imagine под твоей подпиской. -> mp4 bytes или None."""
@@ -67,12 +84,9 @@ def generate_video(image_path: str, prompt: str, seconds: int = 6,
             # 1) загрузить кадр (image-to-video). Ищем file input.
             page.set_input_files("input[type=file]", image_path)
 
-            # 2) вписать промпт движения
-            box = page.locator(config.GROK_SEL_PROMPT).first
-            box.fill(prompt)
-
-            # 3) запустить генерацию
-            page.locator(config.GROK_SEL_SUBMIT).first.click()
+            # 2) вписать промпт движения и 3) запустить (Enter)
+            if _type_prompt(page, prompt):
+                page.keyboard.press("Enter")
 
             # 4) дождаться готового видео и забрать его src
             video = page.locator("video").first
@@ -166,10 +180,12 @@ def generate_image(prompt: str, debug_dir: str | None = None) -> bytes | None:
             # запоминаем картинки интерфейса ДО запроса — потом ищем НОВУЮ
             before = set(page.eval_on_selector_all("img", "els => els.map(e => e.src)"))
 
-            page.locator(config.GROK_SEL_PROMPT).first.fill(prompt)
-            page.locator(config.GROK_SEL_SUBMIT).first.click()
+            typed = _type_prompt(page, prompt)
+            if typed:
+                page.keyboard.press("Enter")
 
-            deadline = time.monotonic() + config.GROK_IMG_WAIT_MS / 1000
+            # если поле не нашли — не ждём впустую, сразу скриншот для отладки
+            deadline = time.monotonic() + (config.GROK_IMG_WAIT_MS / 1000 if typed else 0)
             data = None
             while time.monotonic() < deadline and not data:
                 if config.GROK_SEL_RESULT_IMG:

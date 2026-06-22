@@ -73,7 +73,7 @@ GROK_STATE_FILE = os.getenv("GROK_STATE_FILE", str(BASE_DIR / ".state" / "grok_s
 GROK_WAIT_MS = _int_env("GROK_WAIT_MS", 180_000)   # сколько ждём готовое видео
 GROK_IMG_WAIT_MS = _int_env("GROK_IMG_WAIT_MS", 120_000)  # ждём готовую картинку
 # селекторы grok.com (могут поменяться — тогда правим тут через .env)
-GROK_SEL_PROMPT = os.getenv("GROK_SEL_PROMPT", "textarea")
+GROK_SEL_PROMPT = os.getenv("GROK_SEL_PROMPT", '[aria-label="Ask Grok anything"]')
 GROK_SEL_SUBMIT = os.getenv("GROK_SEL_SUBMIT", "button[type=submit]")
 GROK_SEL_RESULT_IMG = os.getenv("GROK_SEL_RESULT_IMG", "")  # пусто = авто-эвристика
 
