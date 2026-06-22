@@ -49,7 +49,7 @@ def available() -> bool:
 def _dismiss_overlays(page) -> None:
     """Закрывает баннер cookies (OneTrust) и модалку «что нового» — они
     перекрывают поле ввода и перехватывают клики."""
-    # OneTrust: у кнопок согласия фиксированные id — жмём их напрямую
+    # 1) cookies (OneTrust) — у кнопок согласия фиксированные id
     for sel in ("#onetrust-accept-btn-handler", "#onetrust-reject-all-handler",
                 'button:has-text("Accept All Cookies")', 'button:has-text("Reject All")'):
         try:
@@ -57,8 +57,17 @@ def _dismiss_overlays(page) -> None:
             break
         except Exception:  # noqa: BLE001
             continue
+    page.wait_for_timeout(400)
+    # 2) модалка «что нового» — кнопка Get Started или крестик
+    for sel in ('button:has-text("Get Started")', 'button:has-text("Get started")',
+                '[aria-label="Close"]', 'button:has-text("Close")'):
+        try:
+            page.locator(sel).first.click(timeout=2500)
+            break
+        except Exception:  # noqa: BLE001
+            continue
     try:
-        page.keyboard.press("Escape")   # закрыть модалку «что нового»
+        page.keyboard.press("Escape")
     except Exception:  # noqa: BLE001
         pass
     page.wait_for_timeout(800)
