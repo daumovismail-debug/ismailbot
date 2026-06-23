@@ -49,6 +49,8 @@ def status():
     return {
         "openclaw": config.HAS_OPENCLAW,        # подписка ChatGPT (ТЕКСТ)
         "pollinations": config.HAS_POLLINATIONS,  # бесплатные КАРТИНКИ
+        "grok_images": config.USE_GROK_IMAGES,    # Grok рисует картинки (подписка)
+        "grok_browser": config.USE_GROK_BROWSER,  # Grok делает видео (подписка)
         "openai": config.HAS_OPENAI,            # ChatGPT API (запасной)
         "xai": config.HAS_XAI,                  # Grok API (видео)
         "voice": config.HAS_VOICE,              # казахский голос (edge-tts, бесплатно)

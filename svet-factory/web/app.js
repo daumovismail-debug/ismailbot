@@ -43,10 +43,11 @@ async function init() {
     if (st.mode === "real") {
       const on = [];
       if (st.openclaw) on.push("ChatGPT (текст)");
-      if (st.pollinations) on.push("Pollinations (картинки)");
+      if (st.grok_images) on.push("Grok (картинки)");
+      else if (st.pollinations) on.push("Pollinations (картинки)");
+      if (st.grok_browser) on.push("Grok (видео)");
       if (st.voice) on.push("Голос KZ");
       if (st.openai) on.push("OpenAI");
-      if (st.xai) on.push("Grok");
       badge.textContent = "● реальный режим · " + on.join(" + ");
       badge.className = "badge real";
     } else {

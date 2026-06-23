@@ -63,7 +63,10 @@ def _asset(cache: Path, dest: Path, prompt: str, session_key: str,
 def run(job, ctx: dict) -> str:
     workdir: Path = ctx["workdir"]
     session_key = f"svet-{job.id}"   # общая сессия => консистентные персонажи
-    CAST_DIR.mkdir(parents=True, exist_ok=True)
+    # кэш эталонов — СВОЙ на каждый сериал (чтобы новая идея НЕ брала героя из
+    # другого проекта). Внутри одного сериала эпизоды переиспользуют — это ок.
+    cache_dir = CAST_DIR / (job.series_id or job.id)
+    cache_dir.mkdir(parents=True, exist_ok=True)
     cast = ctx.get("cast") or [dict(cast_library.HEROINE)]
     progress = ctx.get("_progress")
     # облик главной героини — из брифа Режиссёра (внешность, что выяснили в интервью)
@@ -76,7 +79,7 @@ def run(job, ctx: dict) -> str:
         cid = c.get("id", "char")
         prompt = cast_library.passport_prompt(c, hero_pp)
         dest = workdir / ("hero.png" if cid == "heroine" else f"char_{cid}.png")
-        src = _asset(CAST_DIR / f"{cid}.png", dest, prompt, session_key,
+        src = _asset(cache_dir / f"{cid}.png", dest, prompt, session_key,
                      f"{c.get('name','')}\n(демо-эталон)", progress,
                      f"рисую эталон: {c.get('name','')}…")
         c["_ref"] = dest.name
@@ -84,7 +87,7 @@ def run(job, ctx: dict) -> str:
         if cid == "heroine":
             ctx["hero_path"] = str(dest)   # face-lock героини для Контролёра
             sheet = workdir / "model_sheet.png"
-            _asset(CAST_DIR / "heroine_sheet.png", sheet, MODEL_SHEET_PROMPT,
+            _asset(cache_dir / "heroine_sheet.png", sheet, MODEL_SHEET_PROMPT,
                    session_key, "МОДЕЛЬНЫЙ ЛИСТ\nгероини (демо)", progress,
                    "рисую модельный лист героини…")
             ctx["model_sheet"] = str(sheet)
