@@ -33,6 +33,16 @@ def _log(msg: str) -> None:
     print(f"[grok-browser] {msg}", flush=True)
 
 
+# Экономные флаги Chromium — чтобы влезть в маленькую память (1 ГБ + swap).
+LAUNCH_ARGS = [
+    "--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu",
+    "--disable-extensions", "--disable-background-networking",
+    "--disable-renderer-backgrounding", "--disable-background-timer-throttling",
+    "--no-first-run", "--no-zygote", "--mute-audio",
+    "--js-flags=--max-old-space-size=256",
+]
+
+
 def available() -> bool:
     # включён хотя бы один режим Grok-браузера (видео или картинки)
     if not (config.USE_GROK_BROWSER or config.USE_GROK_IMAGES):
@@ -101,7 +111,7 @@ def generate_video(image_path: str, prompt: str, seconds: int = 6,
         with sync_playwright() as pw:
             browser = pw.chromium.launch(
                 headless=True,
-                args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
+                args=LAUNCH_ARGS,
             )
             ctx = browser.new_context(storage_state=config.GROK_STATE_FILE)
             page = ctx.new_page()
@@ -218,7 +228,7 @@ def generate_image(prompt: str, debug_dir: str | None = None) -> bytes | None:
         with sync_playwright() as pw:
             browser = pw.chromium.launch(
                 headless=True,
-                args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
+                args=LAUNCH_ARGS,
             )
             ctx = browser.new_context(storage_state=config.GROK_STATE_FILE)
             page = ctx.new_page()
